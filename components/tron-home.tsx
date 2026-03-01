@@ -257,4 +257,3 @@ export default function TronHome({ onNavigate }: TronHomeProps) {
   )
 }
 
-Add Tron Home menu component
