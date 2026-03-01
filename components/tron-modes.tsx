@@ -232,4 +232,3 @@ export default function TronModes({ onBack, onSelectMode }: TronModesProps) {
     </div>
   )
 }
-Add Tron Game Modes component
