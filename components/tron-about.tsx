@@ -238,4 +238,3 @@ export default function TronAbout({ onBack }: TronAboutProps) {
   )
 }
 
-Add Tron About page
