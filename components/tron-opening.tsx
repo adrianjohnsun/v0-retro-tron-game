@@ -596,5 +596,3 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     />
   )
 }
-
-Add Tron Opening cinematic component
