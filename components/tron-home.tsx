@@ -256,4 +256,3 @@ export default function TronHome({ onNavigate }: TronHomeProps) {
     </div>
   )
 }
-
