@@ -239,3 +239,84 @@
   pointer-events: none;
   z-index: 101;
 }
+
+/* Power-up animations */
+@keyframes pulse-powerup {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 5px currentColor);
+  }
+  50% {
+    opacity: 0.6;
+    filter: drop-shadow(0 0 15px currentColor);
+  }
+}
+
+@keyframes power-effect-fade {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+}
+
+/* Glitch text effect */
+.glitch-text {
+  position: relative;
+  animation: glitch-text 0.3s infinite;
+}
+
+@keyframes glitch-text {
+  0% {
+    text-shadow: -2px 0 #FF6600, 2px 0 #00FFFF;
+  }
+  50% {
+    text-shadow: 2px 0 #00FFFF, -2px 0 #FF6600;
+  }
+  100% {
+    text-shadow: -2px 0 #FF6600, 2px 0 #00FFFF;
+  }
+}
+
+/* Team color transitions */
+.team-0 {
+  --team-color: #00FF00;
+}
+
+.team-1 {
+  --team-color: #FF6600;
+}
+
+/* Retro arcade button style */
+button.retro-button {
+  @apply border-2 font-mono uppercase tracking-widest transition-all;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+button.retro-button:hover {
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+}
+
+/* Font definitions */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+.font-press-start {
+  font-family: 'Press Start 2P', cursive;
+}
+
+/* Retro flashing indicator */
+@keyframes retro-flash {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.retro-flash {
+  animation: retro-flash 1s infinite;
+}
