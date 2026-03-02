@@ -123,14 +123,10 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-black text-foreground overflow-x-hidden font-retro;
+    @apply bg-black text-foreground overflow-hidden font-retro;
     /* Added deeper radial gradient for CRT screen effect */
     background-image: radial-gradient(circle at 50% 50%, rgba(0, 242, 255, 0.05) 0%, transparent 80%),
       radial-gradient(ellipse at center, rgba(10, 10, 10, 1) 0%, rgba(0, 0, 0, 1) 100%);
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-    touch-action: manipulation;
   }
 }
 
@@ -242,20 +238,4 @@
   opacity: 0.05;
   pointer-events: none;
   z-index: 101;
-}
-
-/* Disc Wars Arena */
-.disc-arena-border {
-  box-shadow: 0 0 20px rgba(255, 140, 0, 0.3), inset 0 0 25px rgba(255, 140, 0, 0.15), 0 0 40px rgba(255, 140, 0, 0.1);
-  border: 1px solid rgba(255, 140, 0, 0.6);
-  background: rgba(0, 0, 0, 0.9);
-}
-
-.disc-spin {
-  animation: disc-rotate 3s linear infinite;
-}
-
-@keyframes disc-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
