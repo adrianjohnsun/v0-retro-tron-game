@@ -2,15 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useGameLoop } from '@/hooks/use-game-loop';
-import { useMultiplayerGame, Player as MultiPlayer, GameState } from '@/hooks/use-multiplayer-game';
-import { useCLUAI } from '@/hooks/use-clu-ai';
-import { LightCycleDetailed } from './light-cycle-detailed';
-import { ModeSelector } from './mode-selector';
-import { ArenaLayer, ArenaType } from './arena-layer';
-import { PowerUp } from './power-up';
+import { useMultiplayerGame } from '@/hooks/use-multiplayer-game';
 import { CluFace } from './clu-face';
 import { Button } from '@/components/ui/button';
-import { Trophy, Zap, Shield } from 'lucide-react';
 
 const GRID_WIDTH = 80;
 const GRID_HEIGHT = 50;
@@ -18,21 +12,21 @@ const CELL_SIZE = 12;
 
 type GamePhase = 'MODE_SELECT' | 'INTRO' | 'PLAYING' | 'GAME_OVER';
 
-const playSound = (freq: number, type: OscillatorType = 'square', duration = 0.1, volume = 0.1) => {
+const playSound = (freq: number, type: OscillatorType = 'square', duration = 0.1) => {
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = type;
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
     osc.stop(audioCtx.currentTime + duration);
   } catch (e) {
-    console.log('[v0] Audio failed:', e);
+    // Audio context error
   }
 };
 
@@ -42,35 +36,122 @@ export function TronGame() {
   const [difficulty, setDifficulty] = useState(1);
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [isGlitching, setIsGlitching] = useState(false);
-  const [arenaType, setArenaType] = useState<ArenaType>('standard');
-  const [winners, setWinners] = useState<number[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const lastUpdateRef = useRef<number>(0);
-  const lastAIUpdateRef = useRef<number>(0);
+  const updateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { gameState, setPlayerDirection, updateGame } = useMultiplayerGame({
     mode: gameMode || '1v1',
     gridWidth: GRID_WIDTH,
     gridHeight: GRID_HEIGHT,
     level: difficulty,
-    onGameOver: (winners) => {
-      playSound(100, 'sawtooth', 0.8, 0.3);
-      playSound(50, 'square', 1.0, 0.4);
-      triggerGlitch();
-      setWinners(winners);
+    onGameOver: () => {
+      playSound(100, 'sawtooth');
+      playSound(50, 'square');
       setPhase('GAME_OVER');
     },
   });
 
-  const { getAIDirection } = useCLUAI({
-    lookahead: 8 + difficulty * 2,
-    aggressiveness: 0.5 + difficulty * 0.1,
-    teamAwareness: 0.8,
-    powerUpPriority: 0.7,
-  });
+  useGameLoop(() => {
+    if (phase === 'PLAYING') {
+      updateGame();
+    }
+  }, phase === 'PLAYING');
 
-  // Initialize audio
+  useEffect(() => {
+    if (phase !== 'PLAYING') {
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+      }
+      return;
+    }
+
+    updateIntervalRef.current = setInterval(() => {
+      updateGame();
+    }, 50);
+
+    return () => {
+      if (updateIntervalRef.current) clearInterval(updateIntervalRef.current);
+    };
+  }, [phase, updateGame]);
+
+  useEffect(() => {
+    if (phase === 'INTRO' && gameMode) {
+      initIntro();
+    }
+  }, [phase, gameMode]);
+
+  const initIntro = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    }
+
+    const introText =
+      difficulty === 1
+        ? "I'm going to create a perfect system. And you, User... you are an imperfection."
+        : `Sector ${difficulty} advanced. Your persistence is irrelevant. The Grid belongs to CLU.`;
+
+    setDisplayedText('');
+    setIsTyping(true);
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < introText.length) {
+        setDisplayedText((prev) => prev + introText.charAt(i));
+        i++;
+      } else {
+        clearInterval(interval);
+        setIsTyping(false);
+      }
+    }, 50);
+  };
+
+  const handleModeSelect = (mode: '1v1' | '3v3' | '5v5') => {
+    setGameMode(mode);
+    setPhase('INTRO');
+  };
+
+  const startMatch = () => {
+    playSound(440, 'square', 0.1);
+    setTimeout(() => playSound(880, 'square', 0.1), 100);
+    setPhase('PLAYING');
+  };
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (phase !== 'PLAYING') return;
+
+      const userPlayerId = 0;
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          setPlayerDirection(userPlayerId, 'up');
+          playSound(220, 'triangle', 0.05);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          setPlayerDirection(userPlayerId, 'down');
+          playSound(220, 'triangle', 0.05);
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          setPlayerDirection(userPlayerId, 'left');
+          playSound(220, 'triangle', 0.05);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          setPlayerDirection(userPlayerId, 'right');
+          playSound(220, 'triangle', 0.05);
+          break;
+      }
+    },
+    [phase, setPlayerDirection]
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   useEffect(() => {
     const audio = new Audio(
       'https://hebbkx1anhila5yf.public.blob.vercel-storage.storage.googleapis.com/tron_music-Wv1y8OGJ.mp3'
@@ -81,298 +162,136 @@ export function TronGame() {
     return () => audio.pause();
   }, []);
 
-  const triggerGlitch = () => {
-    setIsGlitching(true);
-    playSound(60, 'sawtooth', 0.2, 0.2);
-    setTimeout(() => setIsGlitching(false), 200);
-  };
-
-  const getArenaType = (level: number): ArenaType => {
-    if (level <= 2) return 'standard';
-    if (level <= 4) return 'basement';
-    if (level <= 6) return 'portal';
-    return 'industrial';
-  };
-
-  const handleModeSelect = (mode: '1v1' | '3v3' | '5v5') => {
-    setGameMode(mode);
-    setPhase('INTRO');
-    initIntro(mode);
-  };
-
-  const handleDifficultySelect = (diff: number) => {
-    setDifficulty(diff);
-  };
-
-  const initIntro = (mode: '1v1' | '3v3' | '5v5') => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
-    }
-
-    const introText =
-      difficulty === 1
-        ? "I'm going to create a perfect system. And you, User... you are an imperfection."
-        : `Sector advanced. Your persistence is irrelevant. The Grid belongs to CLU.`;
-
-    setDisplayedText('');
-    setIsTyping(true);
-    let i = 0;
-    const interval = setInterval(() => {
-      setDisplayedText((prev) => prev + introText.charAt(i));
-      i++;
-      if (i >= introText.length) {
-        clearInterval(interval);
-        setIsTyping(false);
-      }
-    }, 50);
-  };
-
-  const startMatch = () => {
-    playSound(440, 'square', 0.1);
-    setTimeout(() => playSound(880, 'square', 0.1), 100);
-    setPhase('PLAYING');
-    setArenaType(getArenaType(difficulty));
-  };
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (phase !== 'PLAYING' || !gameMode) return;
-
-      const userPlayerId = 0;
-      switch (e.key) {
-        case 'ArrowUp':
-          e.preventDefault();
-          setPlayerDirection(userPlayerId, 'up');
-          playSound(220, 'triangle', 0.05, 0.05);
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          setPlayerDirection(userPlayerId, 'down');
-          playSound(220, 'triangle', 0.05, 0.05);
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          setPlayerDirection(userPlayerId, 'left');
-          playSound(220, 'triangle', 0.05, 0.05);
-          break;
-        case 'ArrowRight':
-          e.preventDefault();
-          setPlayerDirection(userPlayerId, 'right');
-          playSound(220, 'triangle', 0.05, 0.05);
-          break;
-      }
-    },
-    [phase, gameMode, setPlayerDirection]
-  );
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
-  // AI Updates
-  useGameLoop((delta) => {
-    lastAIUpdateRef.current += delta;
-    if (lastAIUpdateRef.current > 100) {
-      lastAIUpdateRef.current = 0;
-
-      // Update AI for CLU team (team 1)
-      gameState.players.forEach((player) => {
-        if (player.alive && player.teamId === 1) {
-          const direction = getAIDirection(player, gameState, gameState.players);
-          setPlayerDirection(player.id, direction);
-        }
-      });
-    }
-  }, phase === 'PLAYING');
-
-  // Game updates
-  useGameLoop(() => {
-    lastUpdateRef.current += Date.now();
-    if (lastUpdateRef.current % 80 === 0) {
-      updateGame();
-    }
-  }, phase === 'PLAYING');
-
-  return (
-    <div
-      className={`flex flex-col items-center justify-center min-h-screen bg-black font-mono relative overflow-hidden text-white cursor-none ${
-        isGlitching ? 'glitch-flash' : ''
-      }`}
-    >
-      <div className="crt-overlay" />
-      <div className="noise-overlay" />
-      <div className="scanline" />
-
-      {phase === 'MODE_SELECT' && (
-        <ModeSelector onModeSelect={handleModeSelect} onDifficultySelect={handleDifficultySelect} />
-      )}
-
-      {phase === 'INTRO' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-xl">
-          <div className="flex flex-col items-center gap-8 p-12 max-w-2xl">
-            <div className="mb-4 relative">
-              <div className="absolute inset-0 bg-orange-600/10 blur-3xl rounded-full" />
-              <CluFace isSpeaking={isTyping} color="#ff8c00" />
+  if (phase === 'MODE_SELECT') {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center space-y-8">
+          <h1 className="text-5xl font-mono font-press-start text-cyan-400 glitch-text">TRON</h1>
+          <p className="text-cyan-300 font-mono text-lg">SELECT GAME MODE</p>
+          <div className="grid grid-cols-3 gap-4 max-w-2xl">
+            {[
+              { mode: '1v1' as const, label: '1 vs 1', desc: 'Solo Challenge' },
+              { mode: '3v3' as const, label: '3 vs 3', desc: 'Team Battle' },
+              { mode: '5v5' as const, label: '5 vs 5', desc: 'Full Legion' },
+            ].map((item) => (
+              <button
+                key={item.mode}
+                onClick={() => handleModeSelect(item.mode)}
+                className="border-2 border-cyan-400 bg-black px-6 py-8 hover:bg-cyan-400 hover:text-black transition-all font-mono font-press-start text-lg"
+              >
+                <div>{item.label}</div>
+                <div className="text-xs mt-2">{item.desc}</div>
+              </button>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <p className="text-cyan-300 font-mono text-sm">DIFFICULTY</p>
+            <div className="flex gap-2 justify-center">
+              {[1, 2, 3, 4, 5].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDifficulty(d)}
+                  className={`w-10 h-10 border-2 font-mono font-press-start text-xs ${
+                    difficulty === d
+                      ? 'border-cyan-400 bg-cyan-400 text-black'
+                      : 'border-cyan-400 bg-black text-cyan-400 hover:bg-cyan-400 hover:text-black'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
             </div>
-
-            <h2 className="text-orange-400 text-2xl font-bold tracking-widest">INITIATE SEQUENCE</h2>
-            <div className="h-20 max-w-md">
-              <p className="text-orange-300/80 text-sm leading-relaxed font-mono">{displayedText}</p>
-            </div>
-            <Button
-              onClick={startMatch}
-              disabled={isTyping}
-              className={`bg-orange-600 text-black hover:bg-orange-500 px-10 py-4 font-bold tracking-widest ${
-                !isTyping ? 'animate-pulse' : 'opacity-50'
-              }`}
-            >
-              {isTyping ? 'PROCESSING...' : 'ACKNOWLEDGE'}
-            </Button>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {(phase === 'PLAYING' || phase === 'GAME_OVER') && (
-        <>
-          {/* Header */}
-          <div className="absolute top-6 left-6 z-10 hidden md:block">
-            <div className="p-4 border border-cyan-500/30 bg-black/40 backdrop-blur-sm space-y-2">
-              <div className="text-[8px] text-cyan-500/60 animate-pulse tracking-widest">TRON_ARENA_v2.0</div>
-              <div className="text-lg font-bold text-cyan-400 tron-glow">{gameMode?.toUpperCase()} MATCH</div>
-              <div className="h-0.5 w-full bg-cyan-500/20" />
-              <div className="text-[10px] text-cyan-400">DIFFICULTY: {difficulty}</div>
-              <div className="text-[10px] text-cyan-400">PLAYERS: {gameState.players.length}</div>
-            </div>
-          </div>
-
-          {/* Arena */}
-          <div
-            className="relative tron-border rounded-sm overflow-hidden z-20 mt-12"
-            style={{
-              width: GRID_WIDTH * CELL_SIZE,
-              height: GRID_HEIGHT * CELL_SIZE,
-            }}
+  if (phase === 'INTRO') {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="space-y-8 max-w-2xl">
+          <CluFace displayedText={displayedText} isTyping={isTyping} />
+          <p className="text-cyan-300 font-mono text-center h-24">{displayedText}</p>
+          <Button
+            onClick={startMatch}
+            disabled={isTyping}
+            className="w-full border-2 border-cyan-400 bg-black text-cyan-400 hover:bg-cyan-400 hover:text-black font-mono font-press-start"
           >
-            {/* Arena background */}
-            <svg
-              width={GRID_WIDTH * CELL_SIZE}
-              height={GRID_HEIGHT * CELL_SIZE}
-              className="absolute inset-0"
-            >
-              <defs>
-                <linearGradient id="arena-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="rgba(0, 30, 60, 0.5)" />
-                  <stop offset="100%" stopColor="rgba(0, 10, 30, 0.8)" />
-                </linearGradient>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#arena-grad)" />
-            </svg>
+            ACKNOWLEDGE
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-            <ArenaLayer type={arenaType} level={difficulty} gridWidth={GRID_WIDTH} gridHeight={GRID_HEIGHT} cellSize={CELL_SIZE} />
+  if (phase === 'GAME_OVER') {
+    const alivePlayers = gameState.players.filter((p) => p.alive);
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="text-center space-y-8">
+          <h1 className="text-4xl font-mono font-press-start text-orange-500">
+            {alivePlayers.length === 0 ? 'DRAW' : alivePlayers[0].color === '#00FF00' ? 'USER WINS' : 'CLU WINS'}
+          </h1>
+          <Button
+            onClick={() => {
+              setPhase('MODE_SELECT');
+              setGameMode(null);
+              setDisplayedText('');
+            }}
+            className="border-2 border-cyan-400 bg-black text-cyan-400 hover:bg-cyan-400 hover:text-black font-mono font-press-start"
+          >
+            RETURN TO MENU
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-            {/* Power-ups */}
-            <svg width={GRID_WIDTH * CELL_SIZE} height={GRID_HEIGHT * CELL_SIZE} className="absolute inset-0 z-5">
-              {gameState.powerUps.map((powerUp) => (
-                <PowerUp key={powerUp.id} x={powerUp.x} y={powerUp.y} type={powerUp.type} cellSize={CELL_SIZE} />
-              ))}
-            </svg>
+  return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-2 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-10 pointer-events-none scanlines"></div>
+      <div className="relative z-10">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${GRID_WIDTH}, ${CELL_SIZE}px)`,
+            gap: '1px',
+            backgroundColor: '#000',
+            border: '2px solid #00FF00',
+            boxShadow: '0 0 20px rgba(0, 255, 0, 0.3)',
+          }}
+        >
+          {Array.from({ length: GRID_HEIGHT }).map((_, y) =>
+            Array.from({ length: GRID_WIDTH }).map((_, x) => {
+              const player = gameState.players.find((p) => p.x === x && p.y === y);
+              const isTrail = gameState.allTrails.has(`${x},${y}`);
+              const bgColor = player
+                ? player.color === '#00FF00'
+                  ? 'bg-green-500'
+                  : 'bg-orange-500'
+                : isTrail
+                ? 'bg-cyan-800'
+                : 'bg-gray-900';
 
-            {/* Trails */}
-            {gameState.players.map((player) => (
-              <svg key={`trails-${player.id}`} width={GRID_WIDTH * CELL_SIZE} height={GRID_HEIGHT * CELL_SIZE} className="absolute inset-0 z-10">
-                {Array.from(player.trails).map((posKey, i) => {
-                  const [x, y] = posKey.split(',').map(Number);
-                  return (
-                    <rect
-                      key={`trail-${i}`}
-                      x={x * CELL_SIZE}
-                      y={y * CELL_SIZE}
-                      width={CELL_SIZE}
-                      height={CELL_SIZE}
-                      fill={player.color}
-                      opacity="0.7"
-                      style={{ boxShadow: `0 0 8px ${player.color}` }}
-                    />
-                  );
-                })}
-              </svg>
-            ))}
+              return (
+                <div
+                  key={`${x},${y}`}
+                  className={`w-full h-full ${bgColor}`}
+                  style={{
+                    boxShadow: player ? `0 0 10px ${player.color}` : 'none',
+                  }}
+                />
+              );
+            })
+          )}
+        </div>
+      </div>
 
-            {/* Light Cycles */}
-            {gameState.players.map((player) => (
-              <svg key={`cycle-${player.id}`} width={GRID_WIDTH * CELL_SIZE} height={GRID_HEIGHT * CELL_SIZE} className="absolute inset-0 z-15">
-                {player.alive && (
-                  <LightCycleDetailed
-                    x={player.x}
-                    y={player.y}
-                    direction={player.direction}
-                    color={player.color}
-                    teamId={player.teamId}
-                    isUser={player.id === 0}
-                  />
-                )}
-              </svg>
-            ))}
-
-            {/* Game Over Overlay */}
-            {phase === 'GAME_OVER' && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md z-50">
-                <Trophy className="w-16 h-16 mb-4 text-cyan-400" />
-                <h2 className="text-4xl font-bold mb-6 text-cyan-400 tron-glow">
-                  {winners.includes(0) ? 'USER_VICTORY' : 'PROGRAM_WINS'}
-                </h2>
-                <div className="flex gap-4">
-                  <Button
-                    onClick={() => setPhase('MODE_SELECT')}
-                    variant="outline"
-                    className="border-cyan-400/40 text-cyan-400/60 hover:text-cyan-400"
-                  >
-                    RETURN TO MENU
-                  </Button>
-                  {winners.includes(0) && (
-                    <Button onClick={() => { setDifficulty(difficulty + 1); initIntro(gameMode!); }} className="bg-cyan-400 text-black hover:bg-cyan-500 px-8 py-6 text-xl font-bold">
-                      NEXT SECTOR
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Player Status */}
-          <div className="mt-8 flex gap-16 z-10">
-            {gameState.players.map((player) => (
-              <div
-                key={player.id}
-                className={`flex flex-col items-center gap-3 p-4 border-b-4 transition-all ${
-                  player.alive ? `border-[${player.color}] opacity-100` : 'border-white/10 opacity-30'
-                }`}
-                style={{
-                  borderColor: player.alive ? player.color : 'rgba(255,255,255,0.1)',
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4" style={{ color: player.color }} />
-                  <span className="font-bold tracking-widest text-lg" style={{ color: player.color }}>
-                    TEAM_{player.teamId}_{player.id}
-                  </span>
-                </div>
-                <div className="flex gap-1">
-                  {[...Array(3)].map((_, i) => (
-                    <Shield key={i} className="w-3 h-3" style={{ color: `${player.color}99` }} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      <div className="absolute bottom-6 left-6 flex items-center gap-3 text-[10px] text-cyan-400/40 uppercase tracking-[0.3em] z-10">
-        <div className="animate-pulse w-2 h-2 bg-cyan-400 rounded-full" />
-        System Status: Optimal | Data Stream: Secure
+      <div className="mt-8 text-center space-y-4 text-cyan-400 font-mono">
+        <div>SECTOR: {difficulty}</div>
+        <div>PLAYERS ALIVE: {gameState.players.filter((p) => p.alive).length}</div>
+        <div className="text-xs">ARROW KEYS TO MOVE</div>
       </div>
     </div>
   );
