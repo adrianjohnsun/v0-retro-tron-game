@@ -266,22 +266,52 @@ export function TronGame() {
             Array.from({ length: GRID_WIDTH }).map((_, x) => {
               const player = gameState.players.find((p) => p.x === x && p.y === y);
               const isTrail = gameState.allTrails.has(`${x},${y}`);
-              const bgColor = player
-                ? player.color === '#00FF00'
-                  ? 'bg-green-500'
-                  : 'bg-orange-500'
-                : isTrail
-                ? 'bg-cyan-800'
-                : 'bg-gray-900';
+              
+              let bgColor = 'bg-gray-900';
+              let glassEffect = 'none';
+              let glowColor = 'none';
+
+              if (player) {
+                const isUser = player.color === '#00FF00';
+                bgColor = isUser ? 'bg-green-500' : 'bg-orange-500';
+                glassEffect = `linear-gradient(135deg, 
+                  ${isUser ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 102, 0, 0.8)'} 0%,
+                  ${isUser ? 'rgba(0, 200, 150, 0.5)' : 'rgba(200, 80, 0, 0.5)'} 50%,
+                  ${isUser ? 'rgba(0, 255, 100, 0.3)' : 'rgba(255, 120, 0, 0.3)'} 100%)`;
+                glowColor = isUser ? 'rgba(0, 255, 0, 0.6)' : 'rgba(255, 102, 0, 0.6)';
+              } else if (isTrail) {
+                bgColor = 'bg-cyan-800';
+                glassEffect = `linear-gradient(135deg, 
+                  rgba(0, 150, 200, 0.4) 0%,
+                  rgba(0, 100, 150, 0.2) 100%)`;
+                glowColor = 'rgba(0, 200, 255, 0.3)';
+              }
 
               return (
                 <div
                   key={`${x},${y}`}
-                  className={`w-full h-full ${bgColor}`}
+                  className={`w-full h-full ${bgColor} relative overflow-hidden`}
                   style={{
-                    boxShadow: player ? `0 0 10px ${player.color}` : 'none',
+                    background: glassEffect !== 'none' ? glassEffect : undefined,
+                    boxShadow: glowColor !== 'none' 
+                      ? `inset 0 0 8px ${glowColor}, 0 0 12px ${glowColor}` 
+                      : 'none',
+                    backdropFilter: player ? 'blur(0.5px)' : 'none',
                   }}
-                />
+                >
+                  {/* Glass reflection effect */}
+                  {player && (
+                    <div
+                      className="absolute top-0 left-0 w-full h-1/2 opacity-30"
+                      style={{
+                        background: `linear-gradient(180deg, 
+                          rgba(255, 255, 255, 0.4) 0%,
+                          rgba(255, 255, 255, 0) 100%)`,
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                </div>
               );
             })
           )}
