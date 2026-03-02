@@ -1,9 +1,9 @@
-import { TronGame } from "@/components/tron-game"
+import { EnhancedBikeGame } from "@/components/enhanced-bike-game"
 
 export default function Home() {
   return (
-    <main className="relative">
-      <TronGame />
+    <main className="relative w-full h-screen overflow-hidden">
+      <EnhancedBikeGame />
     </main>
   )
 }
