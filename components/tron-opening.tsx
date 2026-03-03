@@ -46,6 +46,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
   const audioCtxRef = useRef<AudioContext | null>(null)
   const animFrameRef = useRef<number>(0)
   const completedRef = useRef(false)
+  const use3DRef = useRef(typeof window !== 'undefined' && 'WebGL2RenderingContext' in window)
   const dataRef = useRef<{
     particles: DataShard[]
     tunnelRings: TunnelRing[]

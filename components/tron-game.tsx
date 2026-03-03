@@ -7,6 +7,8 @@ import { Zap, Shield, Trophy, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
 import { CluFace } from "./clu-face"
 import Link from "next/link"
 import { getStoryForLevel, type DialogueLine } from "@/lib/story"
+import { LightCycleEnhanced } from "./light-cycle-enhanced"
+import { useMobileLayout } from "@/hooks/useMobileLayout"
 
 const INITIAL_SPEED = 100
 const LEVEL_SPEED_UP = 0.85
@@ -58,35 +60,8 @@ function useGridDimensions() {
 }
 
 function LightCycle({ color, dir, isAlive }: { color: string; dir: Direction; isAlive: boolean }) {
-  const rotation = {
-    UP: "-rotate-90",
-    DOWN: "rotate-90",
-    LEFT: "rotate-180",
-    RIGHT: "rotate-0",
-  }[dir]
-
-  if (!isAlive) return null
-
-  return (
-    <div className={`relative transition-transform duration-100 ${rotation}`}>
-      <div
-        className="absolute -left-3 -top-2 w-10 h-5 border-[1.5px]"
-        style={{
-          borderColor: color,
-          backgroundColor: "rgba(0,0,0,0.9)",
-          boxShadow: `0 0 12px ${color}, inset 0 0 8px ${color}44`,
-        }}
-      >
-        <div className="absolute left-1 top-2 w-6 h-[1px] bg-white opacity-40 shadow-[0_0_4px_white]" />
-        <div className="absolute right-1 top-0.5 w-4 h-2.5 bg-white/10 border border-white/30 skew-x-[15deg] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent" />
-        </div>
-        <div className="absolute -left-1.5 top-0.5 w-2 h-4 border border-inherit" />
-        <div className="absolute -right-1 top-1 w-2 h-0.5 bg-inherit" />
-        <div className="absolute -right-1 bottom-1 w-2 h-0.5 bg-inherit" />
-      </div>
-    </div>
-  )
+  // Use enhanced bike component for better visuals
+  return <LightCycleEnhanced color={color} dir={dir} isAlive={isAlive} size="md" />
 }
 
 const playSound = (freq: number, type: OscillatorType = "square", duration = 0.1, volume = 0.1) => {

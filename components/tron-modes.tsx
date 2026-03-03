@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useMobileLayout } from "@/hooks/useMobileLayout"
 
 interface TronModesProps {
   onBack: () => void
@@ -31,6 +32,7 @@ export default function TronModes({ onBack, onSelectMode }: TronModesProps) {
   const animRef = useRef<number>(0)
   const [visible, setVisible] = useState(false)
   const [hoveredMode, setHoveredMode] = useState<string | null>(null)
+  const { isMobile, isTablet } = useMobileLayout()
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 60)
@@ -118,11 +120,11 @@ export default function TronModes({ onBack, onSelectMode }: TronModesProps) {
           {'<'} BACK
         </button>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-20">
+        <div className={`flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8 sm:py-20 ${isMobile ? 'pb-20' : ''}`}>
           <h2
-            className="font-mono font-black tracking-[0.3em] mb-3"
+            className="font-mono font-black tracking-[0.3em] mb-3 text-center"
             style={{
-              fontSize: "clamp(1.3rem, 3.5vw, 2.2rem)",
+              fontSize: isMobile ? "clamp(1.1rem, 6vw, 1.5rem)" : "clamp(1.3rem, 3.5vw, 2.2rem)",
               color: "#00e8ff",
               textShadow: "0 0 18px rgba(0, 232, 255, 0.25)",
             }}
@@ -131,18 +133,20 @@ export default function TronModes({ onBack, onSelectMode }: TronModesProps) {
           </h2>
 
           <div
-            className="w-28 h-px mb-10"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(0, 232, 255, 0.4), transparent)" }}
+            className="h-px mb-6 sm:mb-10 bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent"
+            style={{ width: isMobile ? '60%' : '112px' }}
           />
 
-          <div className="flex flex-col gap-4 w-full max-w-lg">
+          <div className={`flex flex-col gap-3 w-full ${isMobile ? 'max-w-full px-2' : 'max-w-lg'}`}>
             {MODES.map((mode) => (
               <button
                 key={mode.id}
                 onClick={() => onSelectMode(mode.id)}
-                onMouseEnter={() => setHoveredMode(mode.id)}
-                onMouseLeave={() => setHoveredMode(null)}
-                className="relative w-full text-left py-6 px-7 transition-all duration-300 cursor-pointer"
+                onMouseEnter={() => !isMobile && setHoveredMode(mode.id)}
+                onMouseLeave={() => !isMobile && setHoveredMode(null)}
+                className={`relative w-full text-left transition-all duration-300 cursor-pointer rounded ${
+                  isMobile ? 'py-5 px-4' : 'py-6 px-7'
+                } active:scale-95`}
                 style={{
                   background: hoveredMode === mode.id
                     ? `${mode.color}08`
@@ -151,6 +155,9 @@ export default function TronModes({ onBack, onSelectMode }: TronModesProps) {
                     ? `2px solid ${mode.color}`
                     : `2px solid ${mode.color}18`,
                   transform: hoveredMode === mode.id ? "translateX(6px)" : "translateX(0)",
+                  minHeight: isMobile ? '60px' : 'auto',
+                  border: isMobile ? `1px solid ${mode.color}20` : 'none',
+                  borderLeftWidth: isMobile ? '3px' : '2px',
                 }}
               >
                 {hoveredMode === mode.id && (

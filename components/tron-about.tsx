@@ -1,12 +1,14 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useMobileLayout } from "@/hooks/useMobileLayout"
 
 interface TronAboutProps {
   onBack: () => void
 }
 
 export default function TronAbout({ onBack }: TronAboutProps) {
+  const { isMobile } = useMobileLayout()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animRef = useRef<number>(0)
   const [visible, setVisible] = useState(false)
@@ -78,25 +80,23 @@ export default function TronAbout({ onBack }: TronAboutProps) {
         {/* Back */}
         <button
           onClick={onBack}
-          className="fixed top-6 left-6 z-20 font-mono text-sm tracking-widest py-2 px-4 cursor-pointer transition-all duration-300"
+          className={`fixed top-4 left-4 z-20 font-mono tracking-widest cursor-pointer transition-all duration-300 rounded ${
+            isMobile ? 'py-3 px-4 text-xs min-h-11' : 'text-sm py-2 px-4'
+          }`}
           style={{
             color: "rgba(0, 232, 255, 0.4)",
-            borderLeft: "2px solid rgba(0, 232, 255, 0.2)",
+            borderLeft: "3px solid rgba(0, 232, 255, 0.2)",
             background: "rgba(0, 5, 8, 0.85)",
+            border: isMobile ? "1px solid rgba(0, 232, 255, 0.15)" : "none",
+            borderLeftWidth: isMobile ? "3px" : "2px",
           }}
-          onMouseEnter={e => {
-            e.currentTarget.style.color = "#00e8ff"
-            e.currentTarget.style.borderLeftColor = "#00e8ff"
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.color = "rgba(0, 232, 255, 0.4)"
-            e.currentTarget.style.borderLeftColor = "rgba(0, 232, 255, 0.2)"
-          }}
+          onMouseEnter={e => !isMobile && (e.currentTarget.style.color = "#00e8ff", e.currentTarget.style.borderLeftColor = "#00e8ff")}
+          onMouseLeave={e => !isMobile && (e.currentTarget.style.color = "rgba(0, 232, 255, 0.4)", e.currentTarget.style.borderLeftColor = "rgba(0, 232, 255, 0.2)")}
         >
           {'<'} BACK
         </button>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-20 max-w-2xl mx-auto">
+        <div className={`flex-1 flex flex-col items-center justify-center max-w-2xl mx-auto ${isMobile ? 'px-4 py-12 pb-24' : 'px-6 py-20'}`}>
           <h2
             className="font-mono font-black tracking-[0.3em] mb-3"
             style={{

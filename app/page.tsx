@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import TronOpening from "@/components/tron-opening"
+import EnhancedTronIntro from "@/components/tron-intro-enhanced"
 import TronHome from "@/components/tron-home"
 import TronAbout from "@/components/tron-about"
 import TronModes from "@/components/tron-modes"
@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <main className="relative">
       {screen === "opening" && (
-        <TronOpening onComplete={() => setScreen("home")} />
+        <EnhancedTronIntro onComplete={() => setScreen("home")} use3D={true} />
       )}
 
       {screen === "home" && (

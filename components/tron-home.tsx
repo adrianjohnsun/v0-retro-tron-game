@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useMobileLayout } from "@/hooks/useMobileLayout"
 
 interface TronHomeProps {
   onNavigate: (page: "play" | "modes" | "about") => void
@@ -23,6 +24,7 @@ export default function TronHome({ onNavigate }: TronHomeProps) {
   const animRef = useRef<number>(0)
   const [activeItem, setActiveItem] = useState<number | null>(null)
   const [visible, setVisible] = useState(false)
+  const { isMobile } = useMobileLayout()
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 80)
@@ -128,14 +130,15 @@ export default function TronHome({ onNavigate }: TronHomeProps) {
       />
 
       <div
-        className="relative z-10 flex flex-col items-center justify-center h-full px-6"
+        className={`relative z-10 flex flex-col items-center justify-center h-full ${isMobile ? 'px-4' : 'px-6'}`}
         style={{
           opacity: visible ? 1 : 0,
           transition: "opacity 0.9s ease-out",
+          paddingBottom: isMobile ? '2rem' : '0',
         }}
       >
         {/* Title */}
-        <div className="mb-14 text-center select-none">
+        <div className={`text-center select-none ${isMobile ? 'mb-8' : 'mb-14'}`}>
           <h1
             className="font-mono font-black tracking-widest leading-none"
             style={{
@@ -167,22 +170,28 @@ export default function TronHome({ onNavigate }: TronHomeProps) {
         </div>
 
         {/* Menu */}
-        <nav className="flex flex-col items-center gap-1.5 w-full max-w-md">
+        <nav className={`flex flex-col items-center ${isMobile ? 'gap-2 w-full px-2' : 'gap-1.5 max-w-md'}`}>
           {menuItems.map((item, i) => (
             <button
               key={item.key}
               onClick={() => onNavigate(item.key)}
-              onMouseEnter={() => setActiveItem(i)}
-              onMouseLeave={() => setActiveItem(null)}
-              className="group relative w-full py-4 px-8 text-left transition-all duration-300 cursor-pointer"
+              onMouseEnter={() => !isMobile && setActiveItem(i)}
+              onMouseLeave={() => !isMobile && setActiveItem(null)}
+              className={`group relative w-full text-left transition-all duration-300 cursor-pointer active:scale-95 ${
+                isMobile ? 'py-4 px-6 rounded border' : 'py-4 px-8'
+              }`}
               style={{
                 background: activeItem === i
                   ? "rgba(0, 232, 255, 0.05)"
                   : "transparent",
                 borderLeft: activeItem === i
-                  ? "2px solid rgba(0, 232, 255, 0.75)"
-                  : "2px solid rgba(0, 232, 255, 0.08)",
+                  ? "3px solid rgba(0, 232, 255, 0.75)"
+                  : isMobile ? "3px solid rgba(0, 232, 255, 0.15)" : "2px solid rgba(0, 232, 255, 0.08)",
+                borderTop: isMobile ? "1px solid rgba(0, 232, 255, 0.1)" : "none",
+                borderRight: isMobile ? "1px solid rgba(0, 232, 255, 0.1)" : "none",
+                borderBottom: isMobile ? "1px solid rgba(0, 232, 255, 0.1)" : "none",
                 transform: activeItem === i ? "translateX(8px)" : "translateX(0)",
+                minHeight: isMobile ? '52px' : 'auto',
               }}
             >
               <div
