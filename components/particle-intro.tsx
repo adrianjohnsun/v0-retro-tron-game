@@ -13,7 +13,10 @@ interface ParticleIntroProps {
 
 function Particles() {
   const particlesRef = useRef<THREE.Points>(null)
-  const particleCountRef = useRef(3000)
+  // Reduce particle count on mobile for better performance
+  const particleCountRef = useRef(
+    typeof window !== 'undefined' && window.innerWidth < 768 ? 1200 : 2500
+  )
 
   useEffect(() => {
     if (!particlesRef.current) return

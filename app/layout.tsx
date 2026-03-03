@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono, Press_Start_2P } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
@@ -48,8 +47,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geist.variable} ${geistMono.variable} ${pressStart2P.variable} font-sans antialiased`}>
         {children}
-        <Analytics />
-      {/* v0 – built-with badge */}
+        {/* v0 – built-with badge */}
   <div dangerouslySetInnerHTML={{ __html: `<div id="v0-built-with-button-b3b7368f-7e03-4521-a08b-e35014be58da" style="
 border: 1px solid hsl(0deg 0% 100% / 12%);
 position: fixed;
