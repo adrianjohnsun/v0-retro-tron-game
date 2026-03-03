@@ -7,10 +7,6 @@ const nextConfig = {
     unoptimized: true,
     formats: ['image/avif', 'image/webp'],
   },
-  // Enable React Compiler for optimized performance
-  experimental: {
-    reactCompiler: true,
-  },
   // Production optimizations
   productionBrowserSourceMaps: false,
   swcMinify: true,
