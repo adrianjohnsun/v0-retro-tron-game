@@ -48,7 +48,7 @@ export default function RootLayout({
       <body className={`${geist.variable} ${geistMono.variable} ${pressStart2P.variable} font-sans antialiased`}>
         {children}
         {/* v0 – built-with badge */}
-  <div dangerouslySetInnerHTML={{ __html: `<div id="v0-built-with-button-b3b7368f-7e03-4521-a08b-e35014be58da" style="
+        <div dangerouslySetInnerHTML={{ __html: `<div id="v0-built-with-button-b3b7368f-7e03-4521-a08b-e35014be58da" style="
 border: 1px solid hsl(0deg 0% 100% / 12%);
 position: fixed;
 bottom: 24px;
@@ -130,7 +130,7 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   v0
 </span>
 </div>` }} />
-</body>
+      </body>
     </html>
   )
 }
