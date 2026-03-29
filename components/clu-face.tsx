@@ -7,89 +7,108 @@ interface CluFaceProps {
   color?: string
 }
 
-export function CluFace({ isSpeaking, color = "#ff8c00" }: CluFaceProps) {
-  const [mouthOpen, setMouthOpen] = useState(0)
-  const [eyeFlicker, setEyeFlicker] = useState(false)
+export function CluFace({ isSpeaking, color = "#ffd700" }: CluFaceProps) {
+  const [glowIntensity, setGlowIntensity] = useState(1)
 
-  // Animate mouth based on speaking state
+  // Pulse glow effect when speaking
   useEffect(() => {
     if (!isSpeaking) {
-      setMouthOpen(0)
+      setGlowIntensity(0.8)
       return
     }
 
     const interval = setInterval(() => {
-      setMouthOpen(Math.random() * 8)
-      setEyeFlicker(Math.random() > 0.95)
-    }, 100)
+      setGlowIntensity(0.85 + Math.random() * 0.15)
+    }, 200)
 
     return () => clearInterval(interval)
   }, [isSpeaking])
 
   return (
-    <div className="relative w-48 h-56 flex items-center justify-center filter drop-shadow-[0_0_8px_var(--secondary)]">
-      <svg viewBox="0 0 100 120" className="w-full h-full">
-        {/* Face Outline - Wireframe style */}
+    <div className="relative w-56 h-64 flex items-center justify-center">
+      <svg viewBox="0 0 200 240" className="w-full h-full">
+        <defs>
+          {/* Strong glow filter for the visor */}
+          <filter id="visorGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          {/* Intense outer glow */}
+          <filter id="outerGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Main U-shaped visor outline - iconic CLU helmet design */}
         <path
-          d="M20,30 Q50,15 80,30 L85,70 Q85,100 50,110 Q15,100 15,70 Z"
+          d="M50,40 Q50,20 100,15 Q150,20 150,40 L150,120 Q150,150 100,160 Q50,150 50,120 Z"
           fill="none"
           stroke={color}
-          strokeWidth="1.5"
+          strokeWidth="8"
           strokeLinecap="round"
-          className="opacity-80"
+          strokeLinejoin="round"
+          filter="url(#outerGlow)"
+          style={{ opacity: glowIntensity, transition: "opacity 0.3s ease" }}
         />
 
-        {/* Inner Structure Lines */}
-        <path d="M15,50 L85,50" stroke={color} strokeWidth="0.5" strokeDasharray="2,2" className="opacity-30" />
-        <path d="M50,15 L50,110" stroke={color} strokeWidth="0.5" strokeDasharray="2,2" className="opacity-30" />
+        {/* Inner highlight on visor edges for depth */}
+        <path
+          d="M55,45 Q55,28 100,23 Q145,28 145,45 L145,115 Q145,140 100,150 Q55,140 55,115 Z"
+          fill="none"
+          stroke={color}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.4"
+          filter="url(#visorGlow)"
+        />
 
-        {/* Eyes - Rectangular/Digital */}
-        <g className={eyeFlicker ? "opacity-20" : "opacity-100"}>
-          {/* Left Eye */}
-          <rect x="25" y="45" width="15" height="4" fill={color} className="animate-pulse" />
-          <rect x="25" y="42" width="15" height="1" fill={color} className="opacity-40" />
-
-          {/* Right Eye */}
-          <rect x="60" y="45" width="15" height="4" fill={color} className="animate-pulse" />
-          <rect x="60" y="42" width="15" height="1" fill={color} className="opacity-40" />
-        </g>
-
-        {/* Nose - Vector style */}
-        <path d="M48,55 L52,55 L50,75 Z" fill="none" stroke={color} strokeWidth="1" className="opacity-60" />
-
-        {/* Mouth - Animated */}
-        <g transform={`translate(50, 88)`}>
-          <path
-            d={`M-12,0 Q0,${mouthOpen} 12,0`}
-            fill="none"
-            stroke={color}
-            strokeWidth="3"
-            strokeLinecap="round"
-            className="transition-all duration-75"
-          />
-          {/* Jaw highlight */}
-          <path
-            d={`M-15,4 Q0,${mouthOpen + 4} 15,4`}
-            fill="none"
-            stroke={color}
-            strokeWidth="0.5"
-            className="opacity-30"
-          />
-        </g>
-
-        {/* Digital Glitch Elements */}
+        {/* Subtle glow pulsing effect when speaking */}
         {isSpeaking && (
-          <g className="animate-pulse">
-            <line x1="10" y1="20" x2="20" y2="20" stroke={color} strokeWidth="1" />
-            <line x1="80" y1="90" x2="90" y2="90" stroke={color} strokeWidth="1" />
-          </g>
+          <path
+            d="M50,40 Q50,20 100,15 Q150,20 150,40 L150,120 Q150,150 100,160 Q50,150 50,120 Z"
+            fill="none"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.3"
+            className="animate-pulse"
+            filter="url(#visorGlow)"
+          />
         )}
+
+        {/* Subtle center panel line for geometric detail */}
+        <line
+          x1="100"
+          y1="15"
+          x2="100"
+          y2="160"
+          stroke={color}
+          strokeWidth="1"
+          opacity="0.2"
+        />
       </svg>
 
-      {/* Scanning line for the face */}
+      {/* Ambient glow background */}
       <div
-        className="absolute w-full h-1 bg-white opacity-20 pointer-events-none animate-[scan-vertical_4s_linear_infinite]"
-        style={{ backgroundColor: color }}
+        className="absolute inset-0 rounded-full opacity-35 blur-3xl pointer-events-none -z-10 transition-opacity duration-300"
+        style={{
+          backgroundColor: color,
+          width: "150%",
+          height: "150%",
+          left: "-25%",
+          top: "-25%",
+          opacity: 0.35 * glowIntensity,
+        }}
       />
     </div>
   )

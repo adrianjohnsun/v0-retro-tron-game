@@ -44,6 +44,7 @@ interface TunnelRing {
 export default function TronOpening({ onComplete }: TronOpeningProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const audioCtxRef = useRef<AudioContext | null>(null)
+  const audioSourceRef = useRef<HTMLAudioElement | null>(null)
   const animFrameRef = useRef<number>(0)
   const completedRef = useRef(false)
   const dataRef = useRef<{
@@ -92,11 +93,19 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
   const playGlitch = useCallback((dur: number, vol: number) => {
     try {
       const ctx = getAudioCtx()
-      const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate)
+      // Optimize: Use lower sample count for faster buffer generation
+      const sampleCount = Math.floor(ctx.sampleRate * dur)
+      const buf = ctx.createBuffer(1, sampleCount, ctx.sampleRate)
       const d = buf.getChannelData(0)
-      for (let i = 0; i < d.length; i++) {
-        d[i] = (Math.random() > 0.5 ? 1 : -1) * Math.random() * (i < d.length * 0.15 ? 1 : 1 - i / d.length)
+      
+      // Faster noise generation with reduced iterations
+      const fadeEnd = sampleCount * 0.15
+      for (let i = 0; i < sampleCount; i++) {
+        const noise = Math.random() > 0.5 ? 1 : -1
+        const envelope = i < fadeEnd ? 1 : 1 - (i - fadeEnd) / (sampleCount - fadeEnd)
+        d[i] = noise * Math.random() * envelope
       }
+      
       const src = ctx.createBufferSource()
       src.buffer = buf
       const g = ctx.createGain()
@@ -295,11 +304,23 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       })
     }
 
-    const DURATION = 4500
+    const DURATION = 8000  // 8 seconds for extended intro
     const startTime = performance.now()
     data.startTime = startTime
 
+    // Initialize audio element for background soundtrack
+    const initAudio = () => {
+      if (!audioSourceRef.current) {
+        const audio = new Audio("/tron-intro.wav")
+        audio.volume = 0.7
+        audio.style.display = "none"
+        document.body.appendChild(audio)
+        audioSourceRef.current = audio
+      }
+    }
+
     const audioTriggered = {
+      audioStarted: false,
       whoosh: false,
       beat1: false,
       glitch1: false,
@@ -317,22 +338,25 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       const cx = w / 2
       const cy = h / 2
 
-      // Audio triggers
-      if (progress > 0.02 && !audioTriggered.whoosh) { audioTriggered.whoosh = true; playWhoosh(0.1) }
-      if (progress > 0.08 && !audioTriggered.beat1) { audioTriggered.beat1 = true; playHeartbeat(0, 0.2) }
-      if (progress > 0.25 && !audioTriggered.glitch1) { audioTriggered.glitch1 = true; playGlitch(0.1, 0.05) }
-      if (progress > 0.4 && !audioTriggered.beat2) { audioTriggered.beat2 = true; playHeartbeat(0, 0.3) }
-      if (progress > 0.55 && !audioTriggered.chime) { audioTriggered.chime = true; playChime(0.05) }
-      if (progress > 0.65 && !audioTriggered.glitch2) { audioTriggered.glitch2 = true; playGlitch(0.06, 0.03) }
-      if (progress > 0.78 && !audioTriggered.beat3) { audioTriggered.beat3 = true; playHeartbeat(0, 0.35) }
+      // Audio trigger - start the soundtrack immediately
+      if (!audioTriggered.audioStarted) {
+        audioTriggered.audioStarted = true
+        initAudio()
+        if (audioSourceRef.current) {
+          audioSourceRef.current.currentTime = 0
+          audioSourceRef.current.play().catch(() => {
+            /* audio autoplay policy may prevent playback */
+          })
+        }
+      }
 
       // === CLEAR ===
       ctx.fillStyle = "#000608"
       ctx.fillRect(0, 0, w, h)
 
-      // === PHASE 1: TUNNEL (0 - 0.55) ===
+      // === PHASE 1: TUNNEL (0 - 0.5) ===
       if (progress < 0.65) {
-        const tp = Math.min(1, progress / 0.55)
+        const tp = Math.min(1, progress / 0.5)
         const accel = 1 + tp * tp * 10
 
         // Infinite perspective grid — floor + ceiling
@@ -439,11 +463,11 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         ctx.fillRect(cx - coreSize, cy - coreSize, coreSize * 2, coreSize * 2)
       }
 
-      // === PHASE 2: TITLE PARTICLE RECONSTRUCTION (0.45 - 0.88) ===
-      if (progress > 0.45) {
+      // === PHASE 2: TITLE PARTICLE RECONSTRUCTION (0.35 - 0.85) ===
+      if (progress > 0.35) {
         buildTitleParticles(w, h)
 
-        const titleP = Math.min(1, (progress - 0.45) / 0.4)
+        const titleP = Math.min(1, (progress - 0.35) / 0.5)
         const easeTitle = 1 - Math.pow(1 - titleP, 4)
 
         // Heartbeat pulse
@@ -565,9 +589,9 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       ctx.fillStyle = vig
       ctx.fillRect(0, 0, w, h)
 
-      // === PHASE 3: FADE OUT (0.9 - 1.0) ===
-      if (progress > 0.9) {
-        const fade = Math.min(1, (progress - 0.9) / 0.1)
+      // === PHASE 3: FADE OUT (0.88 - 1.0) ===
+      if (progress > 0.88) {
+        const fade = Math.min(1, (progress - 0.88) / 0.12)
         ctx.fillStyle = `rgba(0, 5, 10, ${fade})`
         ctx.fillRect(0, 0, w, h)
       }
@@ -576,6 +600,11 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         animFrameRef.current = requestAnimationFrame(animate)
       } else if (!completedRef.current) {
         completedRef.current = true
+        // Stop the audio and clean up
+        if (audioSourceRef.current) {
+          audioSourceRef.current.pause()
+          audioSourceRef.current.currentTime = 0
+        }
         setTimeout(onComplete, 100)
       }
     }
@@ -585,8 +614,16 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     return () => {
       window.removeEventListener("resize", resize)
       cancelAnimationFrame(animFrameRef.current)
+      // Clean up audio on unmount
+      if (audioSourceRef.current) {
+        audioSourceRef.current.pause()
+        audioSourceRef.current.currentTime = 0
+        if (audioSourceRef.current.parentNode) {
+          audioSourceRef.current.parentNode.removeChild(audioSourceRef.current)
+        }
+      }
     }
-  }, [onComplete, buildTitleParticles, playWhoosh, playHeartbeat, playGlitch, playChime])
+    }, [onComplete, buildTitleParticles])
 
   return (
     <canvas
