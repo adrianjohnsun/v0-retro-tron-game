@@ -330,7 +330,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       const cx = w / 2
       const cy = h / 2
 
-      // Audio triggers - start the soundtrack at beginning
+      // Audio trigger - start the soundtrack at beginning
       if (progress > 0.01 && !audioTriggered.audioStarted) {
         audioTriggered.audioStarted = true
         initAudio()
@@ -341,14 +341,6 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           })
         }
       }
-
-      // Secondary beeps/effects (attenuated since main audio is playing)
-      if (progress > 0.05 && !audioTriggered.beat1) { audioTriggered.beat1 = true; playHeartbeat(0, 0.08) }
-      if (progress > 0.3 && !audioTriggered.glitch1) { audioTriggered.glitch1 = true; playGlitch(0.08, 0.02) }
-      if (progress > 0.5 && !audioTriggered.beat2) { audioTriggered.beat2 = true; playHeartbeat(0, 0.1) }
-      if (progress > 0.65 && !audioTriggered.chime) { audioTriggered.chime = true; playChime(0.02) }
-      if (progress > 0.78 && !audioTriggered.glitch2) { audioTriggered.glitch2 = true; playGlitch(0.05, 0.01) }
-      if (progress > 0.88 && !audioTriggered.beat3) { audioTriggered.beat3 = true; playHeartbeat(0, 0.12) }
 
       // === CLEAR ===
       ctx.fillStyle = "#000608"
@@ -623,7 +615,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         }
       }
     }
-  }, [onComplete, buildTitleParticles, playWhoosh, playHeartbeat, playGlitch, playChime])
+    }, [onComplete, buildTitleParticles])
 
   return (
     <canvas
