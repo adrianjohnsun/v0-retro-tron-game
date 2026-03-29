@@ -7,6 +7,7 @@ import { Zap, Shield, Trophy, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
 import { CluFace } from "./clu-face"
 import Link from "next/link"
 import { getStoryForLevel, type DialogueLine } from "@/lib/story"
+import { TronIcons } from "./tron-icons"
 
 const INITIAL_SPEED = 100
 const LEVEL_SPEED_UP = 0.85
@@ -69,21 +70,35 @@ function LightCycle({ color, dir, isAlive }: { color: string; dir: Direction; is
 
   return (
     <div className={`relative transition-transform duration-100 ${rotation}`}>
+      {/* Tron Legacy-style realistic light cycle */}
       <div
-        className="absolute -left-3 -top-2 w-10 h-5 border-[1.5px]"
+        className="absolute -left-3 -top-2 w-10 h-5 border-2"
         style={{
           borderColor: color,
-          backgroundColor: "rgba(0,0,0,0.9)",
-          boxShadow: `0 0 12px ${color}, inset 0 0 8px ${color}44`,
+          backgroundColor: "rgba(0,0,0,0.95)",
+          boxShadow: `0 0 16px ${color}, 0 0 24px ${color}88, inset 0 0 10px ${color}33`,
+          clipPath: "polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%)",
         }}
       >
-        <div className="absolute left-1 top-2 w-6 h-[1px] bg-white opacity-40 shadow-[0_0_4px_white]" />
-        <div className="absolute right-1 top-0.5 w-4 h-2.5 bg-white/10 border border-white/30 skew-x-[15deg] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent" />
-        </div>
-        <div className="absolute -left-1.5 top-0.5 w-2 h-4 border border-inherit" />
-        <div className="absolute -right-1 top-1 w-2 h-0.5 bg-inherit" />
-        <div className="absolute -right-1 bottom-1 w-2 h-0.5 bg-inherit" />
+        {/* Front headlight */}
+        <div
+          className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-3 rounded-full"
+          style={{
+            backgroundColor: color,
+            boxShadow: `0 0 8px ${color}, 0 0 12px ${color}66`,
+          }}
+        />
+        {/* Windshield/cockpit */}
+        <div
+          className="absolute left-2 top-1 w-5 h-3 border border-white/20"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.03)",
+            boxShadow: `inset 0 0 4px ${color}44`,
+          }}
+        />
+        {/* Beveled panels */}
+        <div className="absolute left-1 top-0.5 h-0.5 w-2 bg-white/20" />
+        <div className="absolute right-1.5 top-0.5 h-0.5 w-1.5 bg-white/10" />
       </div>
     </div>
   )
@@ -140,7 +155,7 @@ function DialogueBox({
         setIsTyping(false)
         setShowContinue(true)
       }
-    }, 35)
+    }, 20)
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
@@ -279,20 +294,43 @@ function DialogueBox({
 }
 
 function TouchControls({ onDirection }: { onDirection: (dir: Direction) => void }) {
-  const handleTouch = (dir: Direction) => {
+  const [pressed, setPressed] = useState<Direction | null>(null)
+
+  const handleTouchStart = (dir: Direction) => {
     onDirection(dir)
+    setPressed(dir)
     playSound(220, "triangle", 0.05, 0.05)
   }
 
+  const handleTouchEnd = () => {
+    setPressed(null)
+  }
+
+  const ButtonStyles = (dir: Direction) => `
+    flex items-center justify-center 
+    w-12 h-12 sm:w-14 sm:h-14
+    rounded-sm border-2
+    transition-all duration-75
+    ${pressed === dir 
+      ? "bg-primary/40 border-primary shadow-[0_0_12px_rgba(0,242,255,0.8)] scale-95" 
+      : "bg-primary/15 border-primary/50 shadow-[0_0_8px_rgba(0,242,255,0.4)]"
+    }
+    active:bg-primary/40 active:border-primary active:shadow-[0_0_12px_rgba(0,242,255,0.8)]
+    hover:border-primary/80
+  `
+
   return (
-    <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 select-none" style={{ touchAction: "none" }}>
-      <div className="grid grid-cols-3 grid-rows-3 w-36 h-36 gap-1">
+    <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 select-none" style={{ touchAction: "none" }}>
+      <div className="grid grid-cols-3 grid-rows-3 gap-2 w-fit">
         {/* Row 1 */}
         <div />
         <button
-          className="flex items-center justify-center bg-primary/10 border border-primary/30 active:bg-primary/30 transition-colors rounded-sm"
-          onTouchStart={(e) => { e.preventDefault(); handleTouch("UP") }}
-          onMouseDown={() => handleTouch("UP")}
+          className={ButtonStyles("UP")}
+          onTouchStart={(e) => { e.preventDefault(); handleTouchStart("UP") }}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={() => handleTouchStart("UP")}
+          onMouseUp={handleTouchEnd}
+          onMouseLeave={handleTouchEnd}
           aria-label="Move up"
         >
           <ChevronUp className="w-6 h-6 text-primary" />
@@ -300,20 +338,26 @@ function TouchControls({ onDirection }: { onDirection: (dir: Direction) => void 
         <div />
         {/* Row 2 */}
         <button
-          className="flex items-center justify-center bg-primary/10 border border-primary/30 active:bg-primary/30 transition-colors rounded-sm"
-          onTouchStart={(e) => { e.preventDefault(); handleTouch("LEFT") }}
-          onMouseDown={() => handleTouch("LEFT")}
+          className={ButtonStyles("LEFT")}
+          onTouchStart={(e) => { e.preventDefault(); handleTouchStart("LEFT") }}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={() => handleTouchStart("LEFT")}
+          onMouseUp={handleTouchEnd}
+          onMouseLeave={handleTouchEnd}
           aria-label="Move left"
         >
           <ChevronLeft className="w-6 h-6 text-primary" />
         </button>
         <div className="flex items-center justify-center">
-          <div className="w-3 h-3 border border-primary/20 rotate-45" />
+          <div className="w-2 h-2 border border-primary/30 rotate-45" />
         </div>
         <button
-          className="flex items-center justify-center bg-primary/10 border border-primary/30 active:bg-primary/30 transition-colors rounded-sm"
-          onTouchStart={(e) => { e.preventDefault(); handleTouch("RIGHT") }}
-          onMouseDown={() => handleTouch("RIGHT")}
+          className={ButtonStyles("RIGHT")}
+          onTouchStart={(e) => { e.preventDefault(); handleTouchStart("RIGHT") }}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={() => handleTouchStart("RIGHT")}
+          onMouseUp={handleTouchEnd}
+          onMouseLeave={handleTouchEnd}
           aria-label="Move right"
         >
           <ChevronRight className="w-6 h-6 text-primary" />
@@ -321,9 +365,12 @@ function TouchControls({ onDirection }: { onDirection: (dir: Direction) => void 
         {/* Row 3 */}
         <div />
         <button
-          className="flex items-center justify-center bg-primary/10 border border-primary/30 active:bg-primary/30 transition-colors rounded-sm"
-          onTouchStart={(e) => { e.preventDefault(); handleTouch("DOWN") }}
-          onMouseDown={() => handleTouch("DOWN")}
+          className={ButtonStyles("DOWN")}
+          onTouchStart={(e) => { e.preventDefault(); handleTouchStart("DOWN") }}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={() => handleTouchStart("DOWN")}
+          onMouseUp={handleTouchEnd}
+          onMouseLeave={handleTouchEnd}
           aria-label="Move down"
         >
           <ChevronDown className="w-6 h-6 text-primary" />
@@ -665,18 +712,26 @@ export function TronGame() {
 
       {/* Status bar - mobile compact */}
       <div className="flex items-center justify-between w-full max-w-[600px] px-4 md:px-0 mb-2 md:mb-4 z-10">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <Zap className="w-3 h-3 text-primary" />
-            <span className="text-[8px] md:text-[10px] text-primary/80 tracking-widest">LVL {level}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3">
+              <TronIcons.RadarPulse size={12} color="#00f2ff" />
+            </div>
+            <span className="text-[8px] md:text-[10px] text-primary/80 tracking-widest font-bold">LVL {level}</span>
           </div>
           <div className="w-px h-3 bg-primary/20" />
-          <span className="text-[8px] md:text-[10px] text-primary/50">
-            {totalWins}W / {totalLosses}L
+          <span className="text-[8px] md:text-[10px] text-primary/50 font-mono">
+            {totalWins}W {totalLosses}L
           </span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 bg-primary animate-pulse" />
+        <div className="flex items-center gap-1.5">
+          <div
+            className="w-2 h-2 rounded-full animate-pulse"
+            style={{
+              backgroundColor: "#00f2ff",
+              boxShadow: "0 0 6px #00f2ff",
+            }}
+          />
           <span className="text-[7px] md:text-[9px] text-primary/40 tracking-wider">GRID ACTIVE</span>
         </div>
       </div>
@@ -691,35 +746,44 @@ export function TronGame() {
       >
         {/* Grid lines */}
         <div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-15"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(0, 242, 255, 0.4) 1px, transparent 1px), 
-              linear-gradient(90deg, rgba(0, 242, 255, 0.4) 1px, transparent 1px)
+              linear-gradient(rgba(0, 242, 255, 0.3) 0.5px, transparent 0.5px), 
+              linear-gradient(90deg, rgba(0, 242, 255, 0.3) 0.5px, transparent 0.5px)
             `,
             backgroundSize: `${cellSize}px ${cellSize}px`,
           }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.5)_100%)] pointer-events-none" />
 
         {/* Trails and cycles */}
         {players.map((player) => (
           <React.Fragment key={player.id}>
-            {player.trail.map((p, i) => (
-              <div
-                key={i}
-                className="absolute"
-                style={{
-                  left: p.x * cellSize,
-                  top: p.y * cellSize,
-                  width: cellSize,
-                  height: cellSize,
-                  backgroundColor: player.color,
-                  boxShadow: `0 0 8px ${player.color}`,
-                  opacity: 0.6 + (i / player.trail.length) * 0.4,
-                }}
-              />
-            ))}
+            {player.trail.map((p, i) => {
+              const trailProgress = i / player.trail.length
+              const opacity = 0.5 + trailProgress * 0.5
+              return (
+                <div
+                  key={i}
+                  className="absolute"
+                  style={{
+                    left: p.x * cellSize,
+                    top: p.y * cellSize,
+                    width: cellSize,
+                    height: cellSize,
+                    backgroundColor: player.color,
+                    boxShadow: `
+                      0 0 6px ${player.color},
+                      0 0 12px ${player.color}99,
+                      inset 0 0 4px ${player.color}66
+                    `,
+                    opacity: opacity,
+                    filter: `brightness(${0.8 + trailProgress * 0.2})`,
+                  }}
+                />
+              )
+            })}
             <div
               className="absolute z-10"
               style={{
@@ -812,29 +876,35 @@ export function TronGame() {
       {/* Player info - compact on mobile */}
       <div className="mt-3 md:mt-8 flex gap-6 md:gap-16 z-10">
         <div
-          className={`flex flex-col items-center gap-1 md:gap-3 p-2 md:p-4 border-b-2 md:border-b-4 transition-all ${players[0]?.isAlive !== false ? "border-primary opacity-100" : "border-primary/10 opacity-30"}`}
+          className={`flex flex-col items-center gap-2 md:gap-3 p-2 md:p-4 border-b-2 md:border-b-4 transition-all ${players[0]?.isAlive !== false ? "border-primary opacity-100" : "border-primary/10 opacity-30"}`}
         >
           <div className="flex items-center gap-1.5 md:gap-2">
-            <Zap className="w-3 h-3 md:w-4 md:h-4 text-primary" />
+            <div className="w-4 h-4 md:w-5 md:h-5">
+              <TronIcons.Circuit size={16} color="#00f2ff" />
+            </div>
             <span className="text-primary font-black tracking-widest text-[10px] md:text-lg">USER</span>
           </div>
           <div className="flex gap-0.5 md:gap-1">
             {[...Array(Math.min(totalWins, 5))].map((_, i) => (
-              <Shield key={i} className="w-2 h-2 md:w-3 md:h-3 text-primary/60" />
+              <div key={i} className="w-2 h-2 md:w-3 md:h-3">
+                <TronIcons.Diamond size={8} color="#00f2ff" />
+              </div>
             ))}
-            {totalWins === 0 && <span className="text-[7px] md:text-[9px] text-primary/30 tracking-wider">NO WINS</span>}
+            {totalWins === 0 && <span className="text-[7px] md:text-[9px] text-primary/30 tracking-wider">--</span>}
           </div>
         </div>
 
         <div
-          className={`flex flex-col items-center gap-1 md:gap-3 p-2 md:p-4 border-b-2 md:border-b-4 transition-all ${players[1]?.isAlive !== false ? "border-secondary opacity-100" : "border-secondary/10 opacity-30"}`}
+          className={`flex flex-col items-center gap-2 md:gap-3 p-2 md:p-4 border-b-2 md:border-b-4 transition-all ${players[1]?.isAlive !== false ? "border-secondary opacity-100" : "border-secondary/10 opacity-30"}`}
         >
           <div className="flex items-center gap-1.5 md:gap-2">
-            <Zap className="w-3 h-3 md:w-4 md:h-4 text-secondary" />
+            <div className="w-4 h-4 md:w-5 md:h-5">
+              <TronIcons.Hexagon size={16} color="#ff8c00" />
+            </div>
             <span className="text-secondary font-black tracking-widest text-[10px] md:text-lg">CLU</span>
           </div>
           <span className="text-[7px] md:text-[10px] text-secondary/60 font-bold uppercase tracking-widest">
-            {level <= 2 ? "Standard" : level <= 4 ? "Aggressive" : "Maximum"} AI
+            {level <= 2 ? "STD" : level <= 4 ? "AGR" : "MAX"}
           </span>
         </div>
       </div>
