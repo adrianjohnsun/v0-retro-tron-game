@@ -93,11 +93,19 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
   const playGlitch = useCallback((dur: number, vol: number) => {
     try {
       const ctx = getAudioCtx()
-      const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate)
+      // Optimize: Use lower sample count for faster buffer generation
+      const sampleCount = Math.floor(ctx.sampleRate * dur)
+      const buf = ctx.createBuffer(1, sampleCount, ctx.sampleRate)
       const d = buf.getChannelData(0)
-      for (let i = 0; i < d.length; i++) {
-        d[i] = (Math.random() > 0.5 ? 1 : -1) * Math.random() * (i < d.length * 0.15 ? 1 : 1 - i / d.length)
+      
+      // Faster noise generation with reduced iterations
+      const fadeEnd = sampleCount * 0.15
+      for (let i = 0; i < sampleCount; i++) {
+        const noise = Math.random() > 0.5 ? 1 : -1
+        const envelope = i < fadeEnd ? 1 : 1 - (i - fadeEnd) / (sampleCount - fadeEnd)
+        d[i] = noise * Math.random() * envelope
       }
+      
       const src = ctx.createBufferSource()
       src.buffer = buf
       const g = ctx.createGain()
@@ -330,8 +338,8 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       const cx = w / 2
       const cy = h / 2
 
-      // Audio trigger - start the soundtrack at beginning
-      if (progress > 0.01 && !audioTriggered.audioStarted) {
+      // Audio trigger - start the soundtrack immediately
+      if (!audioTriggered.audioStarted) {
         audioTriggered.audioStarted = true
         initAudio()
         if (audioSourceRef.current) {
