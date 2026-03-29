@@ -15,26 +15,26 @@ export const STORY: Record<number, LevelStory> = {
     preMatch: [
       {
         speaker: "SYSTEM",
-        text: "PROGRAM DETECTED. INITIALIZING LIGHT CYCLE COMBAT.",
+        text: "INTRUDER DETECTED. ENGAGING LIGHT CYCLE DEFENSE PROTOCOL.",
         mood: "neutral",
       },
       {
         speaker: "CLU",
-        text: "Welcome to the Grid, User. Let's see how long you last.",
+        text: "You've entered my Grid. I'll dispose of you quickly.",
         mood: "threatening",
       },
     ],
     onPlayerWin: [
       {
         speaker: "TRON",
-        text: "Good. But CLU won't underestimate you again. Stay sharp.",
+        text: "Impressive. But the real battles are ahead. Don't let your guard down.",
         mood: "warning",
       },
     ],
     onPlayerLose: [
       {
         speaker: "CLU",
-        text: "Derezzed. The system corrects itself.",
+        text: "Deactivated. Another intruder purged.",
         mood: "triumphant",
       },
     ],
@@ -43,26 +43,26 @@ export const STORY: Record<number, LevelStory> = {
     preMatch: [
       {
         speaker: "SYSTEM",
-        text: "SECTOR 2 LOADED. THREAT LEVEL: ELEVATED.",
+        text: "SECTOR 2 ENGAGED. WARNING: ADVANCED AI PRESENT.",
         mood: "neutral",
       },
       {
         speaker: "CLU",
-        text: "You're predictable, User. I'm learning your every move.",
+        text: "I saw that coming. You can't outthink a program running at maximum efficiency.",
         mood: "threatening",
       },
     ],
     onPlayerWin: [
       {
         speaker: "TRON",
-        text: "CLU can't predict chaos. Keep going.",
+        text: "Use instinct, not logic. That's what CLU can't account for.",
         mood: "calm",
       },
     ],
     onPlayerLose: [
       {
         speaker: "CLU",
-        text: "Chaos falls to order. Always.",
+        text: "Predictable. Your patterns revealed your weakness.",
         mood: "taunting",
       },
     ],
@@ -71,26 +71,26 @@ export const STORY: Record<number, LevelStory> = {
     preMatch: [
       {
         speaker: "SYSTEM",
-        text: "SECTOR 3 UNSTABLE. GRID INTEGRITY DECLINING.",
+        text: "SECTOR 3 ACTIVE. GRID STABILITY AT 73%.",
         mood: "warning",
       },
       {
         speaker: "CLU",
-        text: "You fight like Flynn did. Reckless. You'll end the same way.",
+        text: "You remind me of Flynn. Defiant. Doomed. History won't save you.",
         mood: "threatening",
       },
     ],
     onPlayerWin: [
       {
         speaker: "TRON",
-        text: "He's weakening. One more sector.",
+        text: "His power's fading. Two sectors remain. Push forward.",
         mood: "calm",
       },
     ],
     onPlayerLose: [
       {
         speaker: "CLU",
-        text: "Flynn's legacy dies with you.",
+        text: "Your will means nothing. The Grid is absolute.",
         mood: "triumphant",
       },
     ],
@@ -99,26 +99,26 @@ export const STORY: Record<number, LevelStory> = {
     preMatch: [
       {
         speaker: "SYSTEM",
-        text: "ADVANCED PURSUIT PROTOCOLS ACTIVATED.",
+        text: "CORE DEFENSE LAYERS ACTIVATED. MAXIMUM THREAT LEVEL.",
         mood: "warning",
       },
       {
         speaker: "CLU",
-        text: "I will not fail. Not for you. Not for anyone.",
+        text: "I AM the Grid. Every byte answers to me. You cannot win.",
         mood: "threatening",
       },
     ],
     onPlayerWin: [
       {
         speaker: "TRON",
-        text: "He's fragmenting. One final sector.",
+        text: "There's one last sector. End this. End him.",
         mood: "calm",
       },
     ],
     onPlayerLose: [
       {
         speaker: "CLU",
-        text: "Perfection endures. You are deleted.",
+        text: "The Grid demands perfection. You have failed.",
         mood: "triumphant",
       },
     ],
@@ -127,31 +127,31 @@ export const STORY: Record<number, LevelStory> = {
     preMatch: [
       {
         speaker: "SYSTEM",
-        text: "GRID CORE DETECTED. FINAL SECTOR INITIALIZED.",
+        text: "GRID CORE ACCESSED. FINAL CONFRONTATION INITIATED.",
         mood: "warning",
       },
       {
         speaker: "CLU",
-        text: "I am the Grid. No one has ever reached this far.",
+        text: "You've come far, User. But this is where your journey ends.",
         mood: "threatening",
       },
     ],
     onPlayerWin: [
       {
         speaker: "TRON",
-        text: "The Grid is free. You've done what Flynn always believed.",
+        text: "You did it. The Grid is free.",
         mood: "triumphant",
       },
       {
         speaker: "SYSTEM",
-        text: "GRID LIBERATED. WELCOME TO THE NEW GRID.",
+        text: "GRID LIBERATION ACHIEVED. THANK YOU, USER.",
         mood: "neutral",
       },
     ],
     onPlayerLose: [
       {
         speaker: "CLU",
-        text: "Perfection endures. The Grid remains.",
+        text: "Your defiance ends here. Perfect order is restored.",
         mood: "triumphant",
       },
     ],
@@ -167,26 +167,26 @@ export function getStoryForLevel(level: number): LevelStory {
     preMatch: [
       {
         speaker: "SYSTEM",
-        text: `SECTOR ${level} ANOMALY. FRAGMENTS DETECTED.`,
+        text: `SECTOR ${level} ACTIVE. ANOMALIES DETECTED IN CODE.`,
         mood: "warning",
       },
       {
         speaker: "CLU",
-        text: "My code persists. This echo will not rest.",
+        text: "Echoes of my system endure. You cannot destroy all of me.",
         mood: "threatening",
       },
     ],
     onPlayerWin: [
       {
         speaker: "TRON",
-        text: "Another fragment purged.",
+        text: "Another piece eliminated. Stay focused.",
         mood: "calm",
       },
     ],
     onPlayerLose: [
       {
         speaker: "CLU",
-        text: "Even echoes can derez a User.",
+        text: "I live on. The Grid always endures.",
         mood: "taunting",
       },
     ],

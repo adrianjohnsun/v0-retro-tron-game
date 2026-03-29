@@ -69,36 +69,86 @@ function LightCycle({ color, dir, isAlive }: { color: string; dir: Direction; is
   if (!isAlive) return null
 
   return (
-    <div className={`relative transition-transform duration-100 ${rotation}`}>
-      {/* Tron Legacy-style realistic light cycle */}
+    <div className={`relative transition-transform duration-100 ${rotation}`} style={{ perspective: "800px" }}>
+      {/* Tron Legacy-style light cycle with subtle 3D glossy effect */}
       <div
-        className="absolute -left-3 -top-2 w-10 h-5 border-2"
+        className="absolute -left-3 -top-2 w-10 h-5 border-2 relative overflow-hidden"
         style={{
           borderColor: color,
           backgroundColor: "rgba(0,0,0,0.95)",
-          boxShadow: `0 0 16px ${color}, 0 0 24px ${color}88, inset 0 0 10px ${color}33`,
+          boxShadow: `
+            0 0 16px ${color}, 
+            0 0 24px ${color}88, 
+            inset 0 0 10px ${color}33,
+            -2px -2px 5px rgba(0,0,0,0.8),
+            1px 1px 4px rgba(0,0,0,0.3)
+          `,
           clipPath: "polygon(5% 0%, 95% 0%, 100% 50%, 95% 100%, 5% 100%, 0% 50%)",
+          transform: "perspective(600px) rotateX(5deg) rotateY(-3deg)",
         }}
       >
-        {/* Front headlight */}
+        {/* Glossy top surface highlight - subtle shine */}
         <div
-          className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-3 rounded-full"
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 40%, transparent 80%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Front headlight - glossy */}
+        <div
+          className="absolute right-0.5 top-1/2 -translate-y-1/2 w-2 h-3 rounded-full relative z-10"
           style={{
             backgroundColor: color,
-            boxShadow: `0 0 8px ${color}, 0 0 12px ${color}66`,
+            boxShadow: `
+              0 0 8px ${color}, 
+              0 0 12px ${color}66,
+              inset -1px -1px 2px rgba(0,0,0,0.5),
+              inset 1px 1px 2px rgba(255,255,255,0.2)
+            `,
           }}
         />
-        {/* Windshield/cockpit */}
+
+        {/* Windshield/cockpit - glossy panel */}
         <div
-          className="absolute left-2 top-1 w-5 h-3 border border-white/20"
+          className="absolute left-2 top-1 w-5 h-3 border rounded-sm relative z-5 overflow-hidden"
           style={{
-            backgroundColor: "rgba(255,255,255,0.03)",
-            boxShadow: `inset 0 0 4px ${color}44`,
+            borderColor: `${color}66`,
+            boxShadow: `
+              inset 0 0 3px ${color}22,
+              inset 1px 1px 2px rgba(255,255,255,0.15),
+              inset -1px -1px 2px rgba(0,0,0,0.3)
+            `,
+            background: `linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.01) 100%)`,
           }}
         />
-        {/* Beveled panels */}
-        <div className="absolute left-1 top-0.5 h-0.5 w-2 bg-white/20" />
-        <div className="absolute right-1.5 top-0.5 h-0.5 w-1.5 bg-white/10" />
+
+        {/* Upper beveled panel - glossy ridge */}
+        <div
+          className="absolute left-1 top-0.5 h-0.5 w-2 rounded-full"
+          style={{
+            background: "linear-gradient(90deg, rgba(255,255,255,0.25), rgba(255,255,255,0.05))",
+            boxShadow: "0 0.5px 1px rgba(255,255,255,0.15), inset 0 -0.5px 1px rgba(0,0,0,0.3)",
+          }}
+        />
+
+        {/* Right side accent - subtle depth */}
+        <div
+          className="absolute right-1.5 top-0.5 h-0.5 w-1.5 rounded"
+          style={{
+            background: "linear-gradient(90deg, rgba(255,255,255,0.1), transparent)",
+            boxShadow: "inset 0 -0.5px 1px rgba(0,0,0,0.3)",
+          }}
+        />
+
+        {/* Bottom shadow for depth - subtle */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-0.5 z-0"
+          style={{
+            background: `linear-gradient(180deg, transparent, ${color}22)`,
+          }}
+        />
       </div>
     </div>
   )

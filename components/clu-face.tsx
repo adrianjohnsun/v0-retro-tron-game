@@ -9,87 +9,130 @@ interface CluFaceProps {
 
 export function CluFace({ isSpeaking, color = "#ff8c00" }: CluFaceProps) {
   const [mouthOpen, setMouthOpen] = useState(0)
-  const [eyeFlicker, setEyeFlicker] = useState(false)
+  const [eyeIntensity, setEyeIntensity] = useState(1)
 
   // Animate mouth based on speaking state
   useEffect(() => {
     if (!isSpeaking) {
       setMouthOpen(0)
+      setEyeIntensity(0.6)
       return
     }
 
     const interval = setInterval(() => {
-      setMouthOpen(Math.random() * 8)
-      setEyeFlicker(Math.random() > 0.95)
-    }, 100)
+      setMouthOpen(Math.random() * 10)
+      setEyeIntensity(0.5 + Math.random() * 0.5)
+    }, 90)
 
     return () => clearInterval(interval)
   }, [isSpeaking])
 
   return (
-    <div className="relative w-48 h-56 flex items-center justify-center filter drop-shadow-[0_0_8px_var(--secondary)]">
-      <svg viewBox="0 0 100 120" className="w-full h-full">
-        {/* Face Outline - Wireframe style */}
+    <div className="relative w-48 h-56 flex items-center justify-center" style={{ filter: `drop-shadow(0 0 12px ${color})` }}>
+      <svg viewBox="0 0 100 130" className="w-full h-full">
+        <defs>
+          {/* Glow filter */}
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* Face Outline - Angular/Robotic like CLU 2 */}
         <path
-          d="M20,30 Q50,15 80,30 L85,70 Q85,100 50,110 Q15,100 15,70 Z"
-          fill="none"
+          d="M25,35 L75,35 L82,75 L75,110 Q50,120 25,110 L18,75 Z"
+          fill={`${color}08`}
           stroke={color}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          className="opacity-80"
+          strokeWidth="2"
+          filter="url(#glow)"
         />
 
-        {/* Inner Structure Lines */}
-        <path d="M15,50 L85,50" stroke={color} strokeWidth="0.5" strokeDasharray="2,2" className="opacity-30" />
-        <path d="M50,15 L50,110" stroke={color} strokeWidth="0.5" strokeDasharray="2,2" className="opacity-30" />
+        {/* Face panel divider */}
+        <path d="M50,35 L50,110" stroke={color} strokeWidth="0.75" opacity="0.3" />
 
-        {/* Eyes - Rectangular/Digital */}
-        <g className={eyeFlicker ? "opacity-20" : "opacity-100"}>
+        {/* Upper face structure */}
+        <path d="M25,35 L75,35 L78,60 L22,60 Z" stroke={color} strokeWidth="0.5" fill="none" opacity="0.2" />
+
+        {/* Eyes - Larger, more defined like CLU from the movie */}
+        <g style={{ opacity: eyeIntensity }}>
           {/* Left Eye */}
-          <rect x="25" y="45" width="15" height="4" fill={color} className="animate-pulse" />
-          <rect x="25" y="42" width="15" height="1" fill={color} className="opacity-40" />
+          <ellipse cx="32" cy="52" rx="7" ry="8" fill="none" stroke={color} strokeWidth="1.5" />
+          <circle cx="32" cy="52" r="5" fill={color} opacity="0.7" />
+          <circle cx="33" cy="51" r="2" fill={`${color}FF`} opacity="0.9" />
 
           {/* Right Eye */}
-          <rect x="60" y="45" width="15" height="4" fill={color} className="animate-pulse" />
-          <rect x="60" y="42" width="15" height="1" fill={color} className="opacity-40" />
+          <ellipse cx="68" cy="52" rx="7" ry="8" fill="none" stroke={color} strokeWidth="1.5" />
+          <circle cx="68" cy="52" r="5" fill={color} opacity="0.7" />
+          <circle cx="69" cy="51" r="2" fill={`${color}FF`} opacity="0.9" />
         </g>
 
-        {/* Nose - Vector style */}
-        <path d="M48,55 L52,55 L50,75 Z" fill="none" stroke={color} strokeWidth="1" className="opacity-60" />
+        {/* Nose/Center ridge - geometric */}
+        <path d="M50,45 L50,75" stroke={color} strokeWidth="1" opacity="0.4" />
+        <path d="M48,75 L52,75" stroke={color} strokeWidth="1.5" opacity="0.6" />
 
-        {/* Mouth - Animated */}
+        {/* Lower face structure */}
+        <path d="M22,70 L78,70 L82,100 L18,100 Z" stroke={color} strokeWidth="0.5" fill="none" opacity="0.15" />
+
+        {/* Mouth - more natural curves like CLU */}
         <g transform={`translate(50, 88)`}>
+          {/* Upper lip */}
           <path
-            d={`M-12,0 Q0,${mouthOpen} 12,0`}
+            d={`M-10,0 Q0,${mouthOpen * 0.8} 10,0`}
             fill="none"
             stroke={color}
-            strokeWidth="3"
+            strokeWidth="2"
             strokeLinecap="round"
             className="transition-all duration-75"
           />
-          {/* Jaw highlight */}
+          {/* Lower lip */}
           <path
-            d={`M-15,4 Q0,${mouthOpen + 4} 15,4`}
+            d={`M-10,0 Q0,${mouthOpen * 0.6 + 2} 10,0`}
             fill="none"
             stroke={color}
-            strokeWidth="0.5"
-            className="opacity-30"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.7"
+            className="transition-all duration-75"
           />
+          {/* Inner mouth glow when speaking */}
+          {isSpeaking && mouthOpen > 3 && (
+            <circle cx="0" cy={mouthOpen * 0.5} r="3" fill={color} opacity="0.3" className="animate-pulse" />
+          )}
         </g>
 
-        {/* Digital Glitch Elements */}
+        {/* Cheekbone definition */}
+        <path d="M18,60 Q15,70 18,85" stroke={color} strokeWidth="0.75" fill="none" opacity="0.3" />
+        <path d="M82,60 Q85,70 82,85" stroke={color} strokeWidth="0.75" fill="none" opacity="0.3" />
+
+        {/* Digital artifacts when speaking */}
         {isSpeaking && (
           <g className="animate-pulse">
-            <line x1="10" y1="20" x2="20" y2="20" stroke={color} strokeWidth="1" />
-            <line x1="80" y1="90" x2="90" y2="90" stroke={color} strokeWidth="1" />
+            <line x1="12" y1="45" x2="18" y2="45" stroke={color} strokeWidth="1" opacity="0.5" />
+            <line x1="82" y1="65" x2="88" y2="65" stroke={color} strokeWidth="1" opacity="0.5" />
+            <line x1="15" y1="100" x2="20" y2="100" stroke={color} strokeWidth="0.75" opacity="0.4" />
           </g>
         )}
       </svg>
 
-      {/* Scanning line for the face */}
+      {/* Ambient glow background */}
       <div
-        className="absolute w-full h-1 bg-white opacity-20 pointer-events-none animate-[scan-vertical_4s_linear_infinite]"
-        style={{ backgroundColor: color }}
+        className="absolute inset-0 rounded-full opacity-30 blur-xl pointer-events-none"
+        style={{
+          backgroundColor: color,
+          filter: `blur(20px)`,
+        }}
+      />
+
+      {/* Scanning line animation */}
+      <div
+        className="absolute w-full h-0.5 pointer-events-none animate-[scan-vertical_3s_linear_infinite]"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
+          opacity: 0.3,
+        }}
       />
     </div>
   )
