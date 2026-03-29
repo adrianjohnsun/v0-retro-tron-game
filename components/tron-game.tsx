@@ -280,7 +280,7 @@ function DialogueBox({
         style={{ color: speakerColor }}
       >
         {currentLine.speaker === "CLU" && "CLU_PROTOCOL"}
-        {currentLine.speaker === "TRON" && "TRON_LEGACY"}
+        {currentLine.speaker === "TRON" && "user"}
         {currentLine.speaker === "SYSTEM" && "GRID_SYSTEM"}
         {currentLine.speaker === "USER" && "USER_TERMINAL"}
       </h2>

@@ -164,7 +164,7 @@ function DialogueBox({
 
   const speakerLabel: Record<string, string> = {
     CLU: "CLU_PROTOCOL",
-    TRON: "TRON_LEGACY",
+    TRON: "user",
     SYSTEM: "ARENA_SYSTEM",
     RINZLER: "RINZLER_X",
     USER: "USER_COMBATANT",

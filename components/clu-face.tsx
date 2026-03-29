@@ -8,32 +8,38 @@ interface CluFaceProps {
 }
 
 export function CluFace({ isSpeaking, color = "#ff8c00" }: CluFaceProps) {
-  const [mouthOpen, setMouthOpen] = useState(0)
-  const [eyeIntensity, setEyeIntensity] = useState(1)
+  const [eyeGlow, setEyeGlow] = useState(1)
 
-  // Animate mouth based on speaking state
+  // Animate eye glow based on speaking state
   useEffect(() => {
     if (!isSpeaking) {
-      setMouthOpen(0)
-      setEyeIntensity(0.6)
+      setEyeGlow(0.8)
       return
     }
 
     const interval = setInterval(() => {
-      setMouthOpen(Math.random() * 10)
-      setEyeIntensity(0.5 + Math.random() * 0.5)
-    }, 90)
+      setEyeGlow(0.7 + Math.random() * 0.3)
+    }, 150)
 
     return () => clearInterval(interval)
   }, [isSpeaking])
 
   return (
-    <div className="relative w-48 h-56 flex items-center justify-center" style={{ filter: `drop-shadow(0 0 12px ${color})` }}>
-      <svg viewBox="0 0 100 130" className="w-full h-full">
+    <div className="relative w-56 h-64 flex items-center justify-center">
+      <svg viewBox="0 0 120 150" className="w-full h-full">
         <defs>
-          {/* Glow filter */}
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+          {/* Strong glow filter for eyes */}
+          <filter id="eyeGlow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          
+          {/* Outer glow */}
+          <filter id="outerGlow" x="-150%" y="-150%" width="400%" height="400%">
+            <feGaussianBlur stdDeviation="5" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
               <feMergeNode in="SourceGraphic" />
@@ -41,97 +47,99 @@ export function CluFace({ isSpeaking, color = "#ff8c00" }: CluFaceProps) {
           </filter>
         </defs>
 
-        {/* Face Outline - Angular/Robotic like CLU 2 */}
+        {/* Dark helmet/head base - minimal geometric shape */}
         <path
-          d="M25,35 L75,35 L82,75 L75,110 Q50,120 25,110 L18,75 Z"
-          fill={`${color}08`}
+          d="M30,40 L90,40 Q105,50 105,90 Q105,130 60,145 Q15,130 15,90 Q15,50 30,40 Z"
+          fill="#1a1a1a"
           stroke={color}
-          strokeWidth="2"
-          filter="url(#glow)"
+          strokeWidth="2.5"
+          filter="url(#outerGlow)"
         />
 
-        {/* Face panel divider */}
-        <path d="M50,35 L50,110" stroke={color} strokeWidth="0.75" opacity="0.3" />
+        {/* Subtle center panel line */}
+        <line x1="60" y1="40" x2="60" y2="145" stroke={color} strokeWidth="0.5" opacity="0.15" />
 
-        {/* Upper face structure */}
-        <path d="M25,35 L75,35 L78,60 L22,60 Z" stroke={color} strokeWidth="0.5" fill="none" opacity="0.2" />
-
-        {/* Eyes - Larger, more defined like CLU from the movie */}
-        <g style={{ opacity: eyeIntensity }}>
-          {/* Left Eye */}
-          <ellipse cx="32" cy="52" rx="7" ry="8" fill="none" stroke={color} strokeWidth="1.5" />
-          <circle cx="32" cy="52" r="5" fill={color} opacity="0.7" />
-          <circle cx="33" cy="51" r="2" fill={`${color}FF`} opacity="0.9" />
-
-          {/* Right Eye */}
-          <ellipse cx="68" cy="52" rx="7" ry="8" fill="none" stroke={color} strokeWidth="1.5" />
-          <circle cx="68" cy="52" r="5" fill={color} opacity="0.7" />
-          <circle cx="69" cy="51" r="2" fill={`${color}FF`} opacity="0.9" />
-        </g>
-
-        {/* Nose/Center ridge - geometric */}
-        <path d="M50,45 L50,75" stroke={color} strokeWidth="1" opacity="0.4" />
-        <path d="M48,75 L52,75" stroke={color} strokeWidth="1.5" opacity="0.6" />
-
-        {/* Lower face structure */}
-        <path d="M22,70 L78,70 L82,100 L18,100 Z" stroke={color} strokeWidth="0.5" fill="none" opacity="0.15" />
-
-        {/* Mouth - more natural curves like CLU */}
-        <g transform={`translate(50, 88)`}>
-          {/* Upper lip */}
+        {/* Left Eye - Large glowing hexagon-like shape */}
+        <g style={{ opacity: eyeGlow }}>
+          {/* Outer glow circle */}
+          <circle cx="38" cy="70" r="18" fill="none" stroke={color} strokeWidth="1.5" opacity="0.3" filter="url(#eyeGlow)" />
+          
+          {/* Main eye - bold hexagonal outline */}
           <path
-            d={`M-10,0 Q0,${mouthOpen * 0.8} 10,0`}
+            d="M32,58 L44,58 L50,64 L50,78 L44,84 L32,84 L26,78 L26,64 Z"
             fill="none"
             stroke={color}
-            strokeWidth="2"
-            strokeLinecap="round"
-            className="transition-all duration-75"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+            filter="url(#eyeGlow)"
           />
-          {/* Lower lip */}
-          <path
-            d={`M-10,0 Q0,${mouthOpen * 0.6 + 2} 10,0`}
-            fill="none"
-            stroke={color}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            opacity="0.7"
-            className="transition-all duration-75"
-          />
-          {/* Inner mouth glow when speaking */}
-          {isSpeaking && mouthOpen > 3 && (
-            <circle cx="0" cy={mouthOpen * 0.5} r="3" fill={color} opacity="0.3" className="animate-pulse" />
-          )}
+          
+          {/* Inner bright fill */}
+          <circle cx="38" cy="71" r="12" fill={color} opacity="0.8" filter="url(#eyeGlow)" />
+          
+          {/* Bright core highlight */}
+          <circle cx="38" cy="68" r="6" fill={color} opacity="1" filter="url(#eyeGlow)" />
         </g>
 
-        {/* Cheekbone definition */}
-        <path d="M18,60 Q15,70 18,85" stroke={color} strokeWidth="0.75" fill="none" opacity="0.3" />
-        <path d="M82,60 Q85,70 82,85" stroke={color} strokeWidth="0.75" fill="none" opacity="0.3" />
+        {/* Right Eye - Large glowing hexagon-like shape */}
+        <g style={{ opacity: eyeGlow }}>
+          {/* Outer glow circle */}
+          <circle cx="82" cy="70" r="18" fill="none" stroke={color} strokeWidth="1.5" opacity="0.3" filter="url(#eyeGlow)" />
+          
+          {/* Main eye - bold hexagonal outline */}
+          <path
+            d="M76,58 L88,58 L94,64 L94,78 L88,84 L76,84 L70,78 L70,64 Z"
+            fill="none"
+            stroke={color}
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+            filter="url(#eyeGlow)"
+          />
+          
+          {/* Inner bright fill */}
+          <circle cx="82" cy="71" r="12" fill={color} opacity="0.8" filter="url(#eyeGlow)" />
+          
+          {/* Bright core highlight */}
+          <circle cx="82" cy="68" r="6" fill={color} opacity="1" filter="url(#eyeGlow)" />
+        </g>
 
-        {/* Digital artifacts when speaking */}
+        {/* Lower face geometry - minimal details */}
+        <path
+          d="M40,105 L80,105"
+          stroke={color}
+          strokeWidth="1.5"
+          opacity="0.4"
+          strokeLinecap="round"
+        />
+
+        {/* Mouth line when speaking */}
         {isSpeaking && (
           <g className="animate-pulse">
-            <line x1="12" y1="45" x2="18" y2="45" stroke={color} strokeWidth="1" opacity="0.5" />
-            <line x1="82" y1="65" x2="88" y2="65" stroke={color} strokeWidth="1" opacity="0.5" />
-            <line x1="15" y1="100" x2="20" y2="100" stroke={color} strokeWidth="0.75" opacity="0.4" />
+            <path
+              d="M45,115 Q60,125 75,115"
+              fill="none"
+              stroke={color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              opacity="0.7"
+            />
           </g>
         )}
+
+        {/* Subtle side panel lines for geometry */}
+        <path d="M20,70 Q15,80 20,95" stroke={color} strokeWidth="0.75" opacity="0.2" />
+        <path d="M100,70 Q105,80 100,95" stroke={color} strokeWidth="0.75" opacity="0.2" />
       </svg>
 
-      {/* Ambient glow background */}
+      {/* Strong ambient glow around face */}
       <div
-        className="absolute inset-0 rounded-full opacity-30 blur-xl pointer-events-none"
+        className="absolute inset-0 rounded-full opacity-40 blur-2xl pointer-events-none -z-10"
         style={{
           backgroundColor: color,
-          filter: `blur(20px)`,
-        }}
-      />
-
-      {/* Scanning line animation */}
-      <div
-        className="absolute w-full h-0.5 pointer-events-none animate-[scan-vertical_3s_linear_infinite]"
-        style={{
-          background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
-          opacity: 0.3,
+          width: "120%",
+          height: "120%",
+          left: "-10%",
+          top: "-10%",
         }}
       />
     </div>
