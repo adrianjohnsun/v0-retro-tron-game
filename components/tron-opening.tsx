@@ -247,8 +247,8 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     octx.fillText("RETRO", off.width / 2, fontSize * 1.6)
 
     const imgData = octx.getImageData(0, 0, off.width, off.height)
-    // Much denser particle spacing for solid logo formation
-    const spacing = Math.max(1, Math.floor(fontSize / 40))
+    // Ultra-dense particle spacing for solid, clear logo formation
+    const spacing = Math.max(1, Math.floor(fontSize / 50))
 
     // Position title higher (top 35% of screen) to leave room for menu below
     const offsetX = (w - off.width) / 2
@@ -496,31 +496,30 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         ctx.fillRect(cx - coreSize, cy - coreSize, coreSize * 2, coreSize * 2)
       }
 
-      // === PHASE 2: TITLE PARTICLE RECONSTRUCTION (0.35 - 0.85) ===
-      if (progress > 0.35) {
+      // === PHASE 2: TITLE PARTICLE RECONSTRUCTION (0.28 - 0.95) ===
+      if (progress > 0.28) {
         buildTitleParticles(w, h)
 
-        const titleP = Math.min(1, (progress - 0.35) / 0.5)
-        const easeTitle = 1 - Math.pow(1 - titleP, 4)
+        const titleP = Math.min(1, (progress - 0.28) / 0.67)
+        const easeTitle = titleP < 0.3 ? titleP * 3.33 : 1 - Math.pow(1 - titleP, 2.5)  // Faster initial acceleration
 
         // Heartbeat pulse
         const hbFreq = 2.0
         const heartbeat = Math.pow(Math.max(0, Math.sin(elapsed * 0.001 * hbFreq * Math.PI * 2)), 14)
 
         for (const p of data.particles) {
-          // Staggered fade in - optimized
-          const staggeredP = Math.max(0, titleP - p.snapDelay * 1000)
-          p.alpha = Math.min(1, staggeredP * 3.5)
+          // Staggered fade in - much more aggressive
+          const staggeredP = Math.max(0, titleP - p.snapDelay * 500)
+          p.alpha = Math.min(1, staggeredP * 5)
 
           if (easeTitle > 0) {
             const dx = p.tx - p.x
             const dy = p.ty - p.y
             const dist = Math.sqrt(dx * dx + dy * dy)
 
-            // Data stream behavior: particles initially follow their stream angle,
-            // then curve toward target
-            const convergeFactor = p.speed * (1 + easeTitle * 3.5)
-            const streamInfluence = Math.max(0, 1 - easeTitle * 2)
+            // Data stream behavior: much faster convergence
+            const convergeFactor = p.speed * (1 + easeTitle * 8) * 1.5
+            const streamInfluence = Math.max(0, 1 - easeTitle * 2.5)
 
             p.x += dx * convergeFactor + Math.cos(p.streamAngle) * p.streamSpeed * streamInfluence
             p.y += dy * convergeFactor + Math.sin(p.streamAngle) * p.streamSpeed * streamInfluence
