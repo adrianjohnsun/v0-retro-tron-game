@@ -225,30 +225,34 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     const octx = off.getContext("2d")
     if (!octx) return
 
-    const fontSize = Math.min(w * 0.13, 140)
+    const fontSize = Math.min(w * 0.14, 160)
     off.width = w
-    off.height = fontSize * 3.2
+    off.height = fontSize * 3.5
 
-    // TRON — bold, ultra-thick for dense particles
+    // TRON — ultra-bold with stroke for maximum density
     octx.fillStyle = "#fff"
     octx.font = `900 ${fontSize}px Arial Black, sans-serif`
     octx.textAlign = "center"
     octx.textBaseline = "middle"
+    octx.strokeStyle = "#fff"
+    octx.lineWidth = 3
+    octx.strokeText("TRON", off.width / 2, fontSize * 0.6)
     octx.fillText("TRON", off.width / 2, fontSize * 0.6)
 
-    // Horizontal separator - thicker for more particles
-    const lineY = fontSize * 1.05
-    octx.fillRect(off.width / 2 - fontSize * 1.5, lineY, fontSize * 3, 3)
+    // Horizontal separator - much thicker with stroke
+    const lineY = fontSize * 1.1
+    octx.fillRect(off.width / 2 - fontSize * 1.6, lineY - 2, fontSize * 3.2, 6)
 
-    // RETRO — bold for better particle density
-    const subSize = fontSize * 0.42
-    octx.font = `700 ${subSize}px Arial Black, sans-serif`
+    // RETRO — ultra-bold with stroke
+    const subSize = fontSize * 0.48
+    octx.font = `900 ${subSize}px Arial Black, sans-serif`
     octx.textAlign = "center"
-    octx.fillText("RETRO", off.width / 2, fontSize * 1.6)
+    octx.strokeText("RETRO", off.width / 2, fontSize * 1.75)
+    octx.fillText("RETRO", off.width / 2, fontSize * 1.75)
 
     const imgData = octx.getImageData(0, 0, off.width, off.height)
-    // Ultra-dense particle spacing for solid, clear logo formation
-    const spacing = Math.max(1, Math.floor(fontSize / 50))
+    // Maximum density particles for solid logo
+    const spacing = Math.max(1, Math.floor(fontSize / 60))
 
     // Position title higher (top 35% of screen) to leave room for menu below
     const offsetX = (w - off.width) / 2

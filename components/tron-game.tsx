@@ -33,22 +33,51 @@ function useGridDimensions() {
     function calc() {
       const w = window.innerWidth
       const h = window.innerHeight
+      const isPortrait = h > w
 
-      if (w < 480) {
-        // Small phones
-        const size = Math.min(w - 32, h * 0.45)
+      if (w < 360) {
+        // Very small phones (portrait)
+        const size = Math.min(w - 24, h * 0.4)
+        const cellSize = Math.max(5, Math.floor(size / 45))
+        const gridSize = Math.floor(size / cellSize)
+        setDims({ gridSize, cellSize })
+      } else if (w < 480) {
+        // Small to medium phones
+        const size = Math.min(w - 32, h * (isPortrait ? 0.48 : 0.8))
         const cellSize = Math.max(6, Math.floor(size / 50))
         const gridSize = Math.floor(size / cellSize)
         setDims({ gridSize, cellSize })
       } else if (w < 768) {
-        // Tablets / large phones
-        const size = Math.min(w - 48, h * 0.5)
+        // Tablets and large phones
+        const size = Math.min(w - 48, h * (isPortrait ? 0.55 : 0.8))
         const cellSize = Math.max(7, Math.floor(size / 55))
         const gridSize = Math.floor(size / cellSize)
         setDims({ gridSize, cellSize })
+      } else if (w < 1024) {
+        // iPad in portrait
+        const size = Math.min(w - 60, h * 0.7)
+        const cellSize = Math.max(8, Math.floor(size / 55))
+        const gridSize = Math.floor(size / cellSize)
+        setDims({ gridSize, cellSize })
       } else {
+        // iPad landscape / desktop
         setDims({ gridSize: 60, cellSize: 10 })
       }
+    }
+
+    calc()
+
+    const listener = () => calc()
+    window.addEventListener("resize", listener)
+    window.addEventListener("orientationchange", listener)
+    return () => {
+      window.removeEventListener("resize", listener)
+      window.removeEventListener("orientationchange", listener)
+    }
+  }, [])
+
+  return dims
+}
     }
     calc()
     window.addEventListener("resize", calc)
@@ -356,9 +385,18 @@ function TouchControls({ onDirection }: { onDirection: (dir: Direction) => void 
     setPressed(null)
   }
 
+  // Responsive button sizing based on screen width
+  const getButtonSize = () => {
+    const w = typeof window !== "undefined" ? window.innerWidth : 1024
+    if (w < 360) return "w-10 h-10"  // Small phones
+    if (w < 480) return "w-12 h-12"  // Normal phones
+    if (w < 768) return "w-14 h-14"  // Large phones / tablets
+    return "w-16 h-16"  // iPad/desktop
+  }
+
   const ButtonStyles = (dir: Direction) => `
     flex items-center justify-center 
-    w-12 h-12 sm:w-14 sm:h-14
+    ${getButtonSize()}
     rounded-sm border-2
     transition-all duration-75
     ${pressed === dir 
@@ -370,8 +408,8 @@ function TouchControls({ onDirection }: { onDirection: (dir: Direction) => void 
   `
 
   return (
-    <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 select-none" style={{ touchAction: "none" }}>
-      <div className="grid grid-cols-3 grid-rows-3 gap-2 w-fit">
+    <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 select-none" style={{ touchAction: "none" }}>
+      <div className="grid grid-cols-3 grid-rows-3 gap-1.5 sm:gap-2 w-fit">
         {/* Row 1 */}
         <div />
         <button
@@ -563,8 +601,8 @@ export function TronGame() {
             score -= distToUser * (0.5 * level)
           }
 
-          // Add randomness factor - minimal on level 1, increases with level
-          const baseFactor = level <= 1 ? 0 : level * 8
+          // Add randomness factor - minimal on level 1, moderate on level 2+
+          const baseFactor = level <= 1 ? 0 : level <= 2 ? 4 : level * 6
           const randomFactor = (Math.random() - 0.5) * baseFactor
           score += randomFactor
 
@@ -572,9 +610,9 @@ export function TronGame() {
         })
         .sort((a, b) => b.score - a.score)
 
-      // Introduce occasional random decisions - very low on level 1, scales with difficulty
+      // Introduce occasional random decisions - balanced across levels
       const randomChance = Math.random()
-      const shouldBeRandom = randomChance < (level <= 1 ? 0.05 : 0.08 + level * 0.06)
+      const shouldBeRandom = randomChance < (level <= 1 ? 0.05 : level <= 2 ? 0.12 : 0.15 + (level - 3) * 0.03)
 
       if (shouldBeRandom && ratedDirs.length > 1) {
         // Pick a random valid direction instead of optimal
@@ -757,7 +795,7 @@ export function TronGame() {
         isAlive: p.isAlive && !collisionResults[i],
       }))
 
-      // Emit particles from alive cycles - optimized for performance
+      // Emit particles from alive cycles - optimized for performance on all devices
       setCycleParticles((prev) => {
         let newParticles = [...prev]
         
@@ -766,9 +804,12 @@ export function TronGame() {
           .map((p) => ({ ...p, age: p.age + 1 }))
           .filter((p) => p.age < p.life)
 
-        // Limit total particles for performance
-        const maxParticles = 80
-        if (newParticles.length < maxParticles && Math.random() > 0.6) {
+        // Adaptive particle limits based on screen size
+        const isMobile = window.innerWidth < 768
+        const maxParticles = isMobile ? 50 : 80
+        const emitChance = isMobile ? 0.5 : 0.6
+
+        if (newParticles.length < maxParticles && Math.random() > emitChance) {
           for (const player of finalPlayers) {
             if (player.isAlive && newParticles.length < maxParticles) {
               const newParticle = {
@@ -778,7 +819,7 @@ export function TronGame() {
                 y: player.pos.y,
                 color: player.color,
                 age: 0,
-                life: 6 + Math.random() * 3,
+                life: 5 + Math.random() * 2,
               }
               newParticles.push(newParticle)
             }
@@ -810,17 +851,17 @@ export function TronGame() {
       <div className="scanline" />
 
       {/* Header */}
-      <div className="flex flex-col items-center z-10 pt-3 md:pt-0 md:mb-4 mb-2">
-        <h1 className="text-3xl md:text-6xl font-black italic tracking-tighter text-primary filter drop-shadow-[0_0_8px_rgba(0,242,255,0.8)]">
+      <div className="flex flex-col items-center z-10 pt-2 sm:pt-3 md:pt-0 md:mb-4 mb-1 sm:mb-2">
+        <h1 className="text-2xl sm:text-4xl md:text-6xl font-black italic tracking-tighter text-primary filter drop-shadow-[0_0_8px_rgba(0,242,255,0.8)]">
           TRON
         </h1>
-        <div className="text-[6px] md:text-[8px] tracking-[0.5em] md:tracking-[0.8em] text-primary/50 mt-0.5 md:mt-1 uppercase">
+        <div className="text-[5px] sm:text-[6px] md:text-[8px] tracking-[0.4em] sm:tracking-[0.5em] md:tracking-[0.8em] text-primary/50 mt-0.5 md:mt-1 uppercase">
           Light Cycle Program
         </div>
       </div>
 
       {/* Status bar - mobile compact */}
-      <div className="flex items-center justify-between w-full max-w-[600px] px-4 md:px-0 mb-2 md:mb-4 z-10">
+      <div className="flex items-center justify-between w-full max-w-[600px] px-3 sm:px-4 md:px-0 mb-1 sm:mb-2 md:mb-4 z-10">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3">
