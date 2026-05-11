@@ -9,8 +9,8 @@ import Link from "next/link"
 import { getStoryForLevel, type DialogueLine } from "@/lib/story"
 import { TronIcons } from "./tron-icons"
 
-const INITIAL_SPEED = 100
-const LEVEL_SPEED_UP = 0.85
+const INITIAL_SPEED = 200  // Slower beginner speed (higher = slower, as it's the delta threshold)
+const LEVEL_SPEED_UP = 0.80  // More speed increase per level
 
 type Point = { x: number; y: number }
 type Direction = "UP" | "DOWN" | "LEFT" | "RIGHT"
@@ -679,6 +679,15 @@ export function TronGame() {
     if (player.dir === "DOWN") newPos.y += 1
     if (player.dir === "LEFT") newPos.x -= 1
     if (player.dir === "RIGHT") newPos.x += 1
+
+    // Light cycle sound effect - subtle tone when moving
+    if (player.id === 1) {
+      // Player cycle - higher frequency
+      playSound(280 + Math.random() * 20, "triangle", 0.02, 0.03)
+    } else {
+      // CLU cycle - lower frequency
+      playSound(200 + Math.random() * 20, "sine", 0.02, 0.02)
+    }
 
     return {
       ...player,

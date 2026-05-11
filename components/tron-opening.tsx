@@ -225,30 +225,30 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     const octx = off.getContext("2d")
     if (!octx) return
 
-    const fontSize = Math.min(w * 0.13, 130)
+    const fontSize = Math.min(w * 0.13, 140)
     off.width = w
     off.height = fontSize * 3.2
 
-    // TRON — bold condensed
+    // TRON — bold, ultra-thick for dense particles
     octx.fillStyle = "#fff"
-    octx.font = `900 ${fontSize}px "Courier New", monospace`
+    octx.font = `900 ${fontSize}px Arial Black, sans-serif`
     octx.textAlign = "center"
     octx.textBaseline = "middle"
     octx.fillText("TRON", off.width / 2, fontSize * 0.6)
 
-    // Horizontal separator
+    // Horizontal separator - thicker for more particles
     const lineY = fontSize * 1.05
-    octx.fillRect(off.width / 2 - fontSize * 1.3, lineY, fontSize * 2.6, 1.5)
+    octx.fillRect(off.width / 2 - fontSize * 1.5, lineY, fontSize * 3, 3)
 
-    // RETRO
-    const subSize = fontSize * 0.38
-    octx.font = `300 ${subSize}px "Courier New", monospace`
-    octx.letterSpacing = "0.5em"
-    octx.fillText("R E T R O", off.width / 2, fontSize * 1.55)
+    // RETRO — bold for better particle density
+    const subSize = fontSize * 0.42
+    octx.font = `700 ${subSize}px Arial Black, sans-serif`
+    octx.textAlign = "center"
+    octx.fillText("RETRO", off.width / 2, fontSize * 1.6)
 
     const imgData = octx.getImageData(0, 0, off.width, off.height)
-    // Tighter spacing for more particles = denser reconstruction
-    const spacing = Math.max(2, Math.floor(fontSize / 30))
+    // Much denser particle spacing for solid logo formation
+    const spacing = Math.max(1, Math.floor(fontSize / 40))
 
     // Position title higher (top 35% of screen) to leave room for menu below
     const offsetX = (w - off.width) / 2
@@ -314,8 +314,9 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
             streamAngle: sAngle,
             streamSpeed: 1 + Math.random() * 3,
             glowIntensity: 0.3 + Math.random() * 0.7,
-            snapDelay: particleIndex * 0.00004, // staggered arrival
+            snapDelay: particleIndex * 0.000015, // faster staggered arrival for tighter formation
           })
+
           particleIndex++
         }
       }
