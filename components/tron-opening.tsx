@@ -47,6 +47,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
   const audioSourceRef = useRef<HTMLAudioElement | null>(null)
   const animFrameRef = useRef<number>(0)
   const completedRef = useRef(false)
+  const audioInitialized = useRef(false)
   const dataRef = useRef<{
     particles: DataShard[]
     tunnelRings: TunnelRing[]
@@ -59,6 +60,76 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       audioCtxRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
     }
     return audioCtxRef.current
+  }, [])
+
+  // Initialize audio immediately on mount
+  useEffect(() => {
+    if (audioInitialized.current) return
+    audioInitialized.current = true
+
+    const initAudio = () => {
+      if (audioSourceRef.current) return
+
+      const audio = new Audio("/tron-intro.wav")
+      audio.volume = 0.75
+      audio.autoplay = false
+      audio.loop = false
+      audio.preload = "auto"
+      
+      const playAudio = () => {
+        audio.currentTime = 0
+        const playPromise = audio.play()
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log("[v0] Audio playing successfully")
+            })
+            .catch((err) => {
+              console.log("[v0] Audio autoplay blocked:", err.name)
+              // Fallback: play on first user interaction
+              const resumeAudio = () => {
+                audio.play().catch((e) => console.log("[v0] Resume failed:", e.name))
+                document.removeEventListener("click", resumeAudio)
+                document.removeEventListener("keydown", resumeAudio)
+                document.removeEventListener("touchstart", resumeAudio)
+              }
+              document.addEventListener("click", resumeAudio, { once: true })
+              document.addEventListener("keydown", resumeAudio, { once: true })
+              document.addEventListener("touchstart", resumeAudio, { once: true })
+            })
+        }
+      }
+
+      // Listen for data loading
+      audio.addEventListener(
+        "canplay",
+        () => {
+          console.log("[v0] Audio ready, starting playback")
+          playAudio()
+        },
+        { once: true }
+      )
+
+      // Fallback if already loaded
+      if (audio.readyState >= 2) {
+        console.log("[v0] Audio already buffered, playing immediately")
+        playAudio()
+      }
+
+      audioSourceRef.current = audio
+    }
+
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(initAudio, 100)
+
+    return () => {
+      clearTimeout(timer)
+      if (audioSourceRef.current) {
+        audioSourceRef.current.pause()
+        audioSourceRef.current.currentTime = 0
+      }
+    }
   }, [])
 
   // Deep bass heartbeat — Daft Punk / Tron Legacy score feel
@@ -308,28 +379,6 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     const startTime = performance.now()
     data.startTime = startTime
 
-    // Initialize audio element for background soundtrack
-    const initAudio = () => {
-      if (!audioSourceRef.current) {
-        const audio = new Audio("/tron-intro.wav")
-        audio.volume = 0.7
-        audio.style.display = "none"
-        document.body.appendChild(audio)
-        audioSourceRef.current = audio
-      }
-    }
-
-    const audioTriggered = {
-      audioStarted: false,
-      whoosh: false,
-      beat1: false,
-      glitch1: false,
-      beat2: false,
-      chime: false,
-      glitch2: false,
-      beat3: false,
-    }
-
     const animate = (now: number) => {
       const elapsed = now - startTime
       const progress = Math.min(elapsed / DURATION, 1)
@@ -337,18 +386,6 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       const h = H()
       const cx = w / 2
       const cy = h / 2
-
-      // Audio trigger - start the soundtrack immediately
-      if (!audioTriggered.audioStarted) {
-        audioTriggered.audioStarted = true
-        initAudio()
-        if (audioSourceRef.current) {
-          audioSourceRef.current.currentTime = 0
-          audioSourceRef.current.play().catch(() => {
-            /* audio autoplay policy may prevent playback */
-          })
-        }
-      }
 
       // === CLEAR ===
       ctx.fillStyle = "#000608"
@@ -362,21 +399,26 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         // Infinite perspective grid — floor + ceiling
         ctx.save()
         const vanishY = cy * 0.35
+        const h75 = h * 0.75
+        const offset = ((elapsed * 0.003 * accel) % 1) * (h75 / 20)
+        const baseAlpha = (1 - tp * 0.6) * 0.4
 
-        for (let i = 0; i < 45; i++) {
-          const z = (i / 45) * 20 + 1
-          const screenY = vanishY + (h * 0.75) / z
-          const offset = ((elapsed * 0.003 * accel) % 1) * (h * 0.75 / 20)
-          const a = Math.max(0, (1 - tp * 0.6) * 0.4 * (1 - i / 45))
+        // Optimize: Draw grid lines with reduced iterations (every 2 lines)
+        ctx.lineWidth = 0.5
+        for (let i = 0; i < 18; i++) {
+          const ii = i * 2
+          const z = (ii / 36) * 20 + 1
+          const screenY = vanishY + h75 / z
+          const a = Math.max(0, baseAlpha * (1 - ii / 36))
 
+          // Floor grid
           ctx.strokeStyle = `hsla(190, 90%, 55%, ${a})`
-          ctx.lineWidth = 0.5
           ctx.beginPath()
           ctx.moveTo(0, screenY + offset)
           ctx.lineTo(w, screenY + offset)
           ctx.stroke()
 
-          // Ceiling
+          // Ceiling with reduced opacity
           const my = vanishY - (screenY - vanishY) * 0.5
           ctx.strokeStyle = `hsla(190, 80%, 45%, ${a * 0.25})`
           ctx.beginPath()
@@ -385,8 +427,9 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           ctx.stroke()
         }
 
-        // Converging verticals
-        for (let i = -18; i <= 18; i++) {
+        // Converging verticals - optimized
+        ctx.strokeStyle = `hsla(190, 85%, 50%, ${baseAlpha * 0.6})`
+        for (let i = -16; i <= 16; i += 1) {
           const xBase = cx + (i / 18) * w * 0.95
           const a = Math.max(0, (1 - Math.abs(i) / 18) * 0.3 * (1 - tp * 0.3))
           ctx.strokeStyle = `hsla(190, 90%, 50%, ${a})`
@@ -426,30 +469,38 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           }
         }
 
-        // Speed streaks
-        for (let i = 0; i < 160; i++) {
+        // Speed streaks - optimized for performance
+        const maxStreaks = tp > 0.5 ? 120 : 80  // Reduce streaks as animation progresses
+        const streakOpacity = Math.min(1, tp * 2.8)
+        const maxDist = Math.max(w, h) * 0.85
+        
+        for (let i = 0; i < maxStreaks; i++) {
           const seed = i * 7919 + 3
           const angle = ((seed % 1000) / 1000) * Math.PI * 2
           const baseDist = (seed % 777) / 777
           const spd = 1.8 + ((seed % 500) / 500) * 5
 
           const streakP = ((elapsed * 0.001 * spd * (0.4 + tp) + baseDist) % 1)
-          const d = streakP * Math.max(w, h) * 0.85
+          const d = streakP * maxDist
           const len = 12 + ((seed % 300) / 300) * 45 * (0.4 + tp)
-          const a = Math.min(1, tp * 2.8) * (1 - streakP) * 0.5
+          const a = streakOpacity * (1 - streakP) * 0.5
 
-          const x1 = cx + Math.cos(angle) * d
-          const y1 = cy + Math.sin(angle) * d
-          const x2 = cx + Math.cos(angle) * (d + len)
-          const y2 = cy + Math.sin(angle) * (d + len)
+          if (a > 0.02) {  // Skip nearly invisible streaks
+            const cosA = Math.cos(angle)
+            const sinA = Math.sin(angle)
+            const x1 = cx + cosA * d
+            const y1 = cy + sinA * d
+            const x2 = cx + cosA * (d + len)
+            const y2 = cy + sinA * (d + len)
 
-          const hue = (seed % 12) < 1 ? 28 : 190
-          ctx.strokeStyle = `hsla(${hue}, 100%, 68%, ${a})`
-          ctx.lineWidth = 0.25 + ((seed % 200) / 200) * 1.3 * (1 - streakP * 0.5)
-          ctx.beginPath()
-          ctx.moveTo(x1, y1)
-          ctx.lineTo(x2, y2)
-          ctx.stroke()
+            const hue = (seed % 12) < 1 ? 28 : 190
+            ctx.strokeStyle = `hsla(${hue}, 100%, 68%, ${a})`
+            ctx.lineWidth = 0.25 + ((seed % 200) / 200) * 1.3 * (1 - streakP * 0.5)
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.stroke()
+          }
         }
 
         // Central vortex
@@ -475,14 +526,13 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         const heartbeat = Math.pow(Math.max(0, Math.sin(elapsed * 0.001 * hbFreq * Math.PI * 2)), 14)
 
         for (const p of data.particles) {
-          // Staggered fade in
+          // Staggered fade in - optimized
           const staggeredP = Math.max(0, titleP - p.snapDelay * 1000)
           p.alpha = Math.min(1, staggeredP * 3.5)
 
           if (easeTitle > 0) {
             const dx = p.tx - p.x
             const dy = p.ty - p.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
 
             // Data stream behavior: particles initially follow their stream angle,
             // then curve toward target
@@ -492,10 +542,10 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
             p.x += dx * convergeFactor + Math.cos(p.streamAngle) * p.streamSpeed * streamInfluence
             p.y += dy * convergeFactor + Math.sin(p.streamAngle) * p.streamSpeed * streamInfluence
 
-            // Data stream trail — rectangular fragments
-            if (dist > 4 && titleP < 0.85) {
+            // Data stream trail — rectangular fragments (skip distance check for performance)
+            if (titleP < 0.85 && Math.random() > 0.65) {
               p.trail.push({ x: p.x, y: p.y, a: 0.35, w: p.w * 0.6, h: p.h * 0.6 })
-              if (p.trail.length > 8) p.trail.shift()
+              if (p.trail.length > 6) p.trail.shift()
             }
 
             if (dist < 1.2 && !p.arrived) {
@@ -618,12 +668,9 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       if (audioSourceRef.current) {
         audioSourceRef.current.pause()
         audioSourceRef.current.currentTime = 0
-        if (audioSourceRef.current.parentNode) {
-          audioSourceRef.current.parentNode.removeChild(audioSourceRef.current)
-        }
       }
     }
-    }, [onComplete, buildTitleParticles])
+  }, [onComplete, buildTitleParticles])
 
   return (
     <canvas
