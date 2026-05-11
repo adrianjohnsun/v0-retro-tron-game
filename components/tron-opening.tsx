@@ -344,7 +344,8 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
 
     const data = dataRef.current
     data.tunnelRings = []
-    for (let i = 0; i < 35; i++) {
+    const ringCount = window.innerWidth > 768 ? 35 : 20  // Fewer rings on mobile
+    for (let i = 0; i < ringCount; i++) {
       data.tunnelRings.push({
         z: i * 55 + Math.random() * 25,
         speed: 3.5 + Math.random() * 3,
@@ -381,10 +382,12 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         const offset = ((elapsed * 0.003 * accel) % 1) * (h75 / 20)
         const baseAlpha = (1 - tp * 0.6) * 0.4
 
-        // Optimize: Draw grid lines with reduced iterations (every 2 lines)
+        // Optimize: Draw grid lines with adaptive density based on screen size
         ctx.lineWidth = 0.5
-        for (let i = 0; i < 18; i++) {
-          const ii = i * 2
+        const gridDensity = w > 768 ? 2 : 3  // Fewer lines on mobile
+        const gridLines = Math.floor(36 / gridDensity)
+        for (let i = 0; i < gridLines; i++) {
+          const ii = i * gridDensity
           const z = (ii / 36) * 20 + 1
           const screenY = vanishY + h75 / z
           const a = Math.max(0, baseAlpha * (1 - ii / 36))
@@ -448,7 +451,8 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         }
 
         // Speed streaks - optimized for performance
-        const maxStreaks = tp > 0.5 ? 120 : 80  // Reduce streaks as animation progresses
+        const isMobile = w <= 768
+        const maxStreaks = isMobile ? (tp > 0.5 ? 60 : 40) : (tp > 0.5 ? 120 : 80)
         const streakOpacity = Math.min(1, tp * 2.8)
         const maxDist = Math.max(w, h) * 0.85
         

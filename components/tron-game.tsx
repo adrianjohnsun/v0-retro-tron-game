@@ -9,8 +9,8 @@ import Link from "next/link"
 import { getStoryForLevel, type DialogueLine } from "@/lib/story"
 import { TronIcons } from "./tron-icons"
 
-const INITIAL_SPEED = 200  // Slower beginner speed (higher = slower, as it's the delta threshold)
-const LEVEL_SPEED_UP = 0.80  // More speed increase per level
+const INITIAL_SPEED = 100  // Normal speed for level 1
+const LEVEL_SPEED_UP = 0.85  // Progressive speed increase per level
 
 type Point = { x: number; y: number }
 type Direction = "UP" | "DOWN" | "LEFT" | "RIGHT"
@@ -563,17 +563,18 @@ export function TronGame() {
             score -= distToUser * (0.5 * level)
           }
 
-          // Add randomness factor for unpredictable behavior
-          const randomFactor = (Math.random() - 0.5) * (level * 15)
+          // Add randomness factor - minimal on level 1, increases with level
+          const baseFactor = level <= 1 ? 0 : level * 8
+          const randomFactor = (Math.random() - 0.5) * baseFactor
           score += randomFactor
 
           return { dir: d, score }
         })
         .sort((a, b) => b.score - a.score)
 
-      // Introduce occasional random decisions (more likely at higher levels)
+      // Introduce occasional random decisions - very low on level 1, scales with difficulty
       const randomChance = Math.random()
-      const shouldBeRandom = randomChance < (0.1 + level * 0.08)
+      const shouldBeRandom = randomChance < (level <= 1 ? 0.05 : 0.08 + level * 0.06)
 
       if (shouldBeRandom && ratedDirs.length > 1) {
         // Pick a random valid direction instead of optimal
@@ -756,7 +757,7 @@ export function TronGame() {
         isAlive: p.isAlive && !collisionResults[i],
       }))
 
-      // Emit particles from alive cycles
+      // Emit particles from alive cycles - optimized for performance
       setCycleParticles((prev) => {
         let newParticles = [...prev]
         
@@ -765,10 +766,11 @@ export function TronGame() {
           .map((p) => ({ ...p, age: p.age + 1 }))
           .filter((p) => p.age < p.life)
 
-        // Emit new particles from alive cycles (every other frame)
-        if (Math.random() > 0.4) {
+        // Limit total particles for performance
+        const maxParticles = 80
+        if (newParticles.length < maxParticles && Math.random() > 0.6) {
           for (const player of finalPlayers) {
-            if (player.isAlive) {
+            if (player.isAlive && newParticles.length < maxParticles) {
               const newParticle = {
                 id: `${player.id}-${particleCounterRef.current++}`,
                 playerId: player.id,
@@ -776,14 +778,14 @@ export function TronGame() {
                 y: player.pos.y,
                 color: player.color,
                 age: 0,
-                life: 8 + Math.random() * 4,
+                life: 6 + Math.random() * 3,
               }
               newParticles.push(newParticle)
             }
           }
         }
 
-        return newParticles
+        return newParticles.slice(-maxParticles)
       })
 
       const aliveCount = finalPlayers.filter((p) => p.isAlive).length
