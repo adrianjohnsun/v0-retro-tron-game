@@ -533,6 +533,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           if (easeTitle > 0) {
             const dx = p.tx - p.x
             const dy = p.ty - p.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
 
             // Data stream behavior: particles initially follow their stream angle,
             // then curve toward target
