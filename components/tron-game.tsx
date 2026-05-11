@@ -444,6 +444,8 @@ export function TronGame() {
   const [isGlitching, setIsGlitching] = useState(false)
   const [totalWins, setTotalWins] = useState(0)
   const [totalLosses, setTotalLosses] = useState(0)
+  const [cycleParticles, setCycleParticles] = useState<Array<{ id: string; playerId: number; x: number; y: number; color: string; age: number; life: number }>>([])
+  const particleCounterRef = useRef(0)
 
   const speakerColors: Record<string, string> = useMemo(
     () => ({
@@ -745,6 +747,36 @@ export function TronGame() {
         isAlive: p.isAlive && !collisionResults[i],
       }))
 
+      // Emit particles from alive cycles
+      setCycleParticles((prev) => {
+        let newParticles = [...prev]
+        
+        // Update existing particles
+        newParticles = newParticles
+          .map((p) => ({ ...p, age: p.age + 1 }))
+          .filter((p) => p.age < p.life)
+
+        // Emit new particles from alive cycles (every other frame)
+        if (Math.random() > 0.4) {
+          for (const player of finalPlayers) {
+            if (player.isAlive) {
+              const newParticle = {
+                id: `${player.id}-${particleCounterRef.current++}`,
+                playerId: player.id,
+                x: player.pos.x,
+                y: player.pos.y,
+                color: player.color,
+                age: 0,
+                life: 8 + Math.random() * 4,
+              }
+              newParticles.push(newParticle)
+            }
+          }
+        }
+
+        return newParticles
+      })
+
       const aliveCount = finalPlayers.filter((p) => p.isAlive).length
       if (aliveCount <= 1 && gameState === "PLAYING") {
         const wp = finalPlayers.find((p) => p.isAlive)
@@ -823,6 +855,28 @@ export function TronGame() {
         />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.5)_100%)] pointer-events-none" />
 
+        {/* Cycle particles */}
+        {cycleParticles.map((particle) => {
+          const opacity = 1 - particle.age / particle.life
+          const size = cellSize * (0.2 + Math.sin(particle.age * 0.5) * 0.1)
+          return (
+            <div
+              key={particle.id}
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                left: particle.x * cellSize + (cellSize - size) / 2,
+                top: particle.y * cellSize + (cellSize - size) / 2,
+                width: size,
+                height: size,
+                backgroundColor: particle.color,
+                boxShadow: `0 0 4px ${particle.color}, 0 0 8px ${particle.color}88`,
+                opacity: opacity * 0.7,
+                transform: `scale(${1 - opacity * 0.3})`,
+              }}
+            />
+          )
+        })}
+
         {/* Trails and cycles */}
         {players.map((player) => (
           <React.Fragment key={player.id}>
@@ -859,7 +913,45 @@ export function TronGame() {
                 height: cellSize,
               }}
             >
+              {/* Glow halo effect */}
+              <div
+                className="absolute inset-0 animate-pulse"
+                style={{
+                  background: `radial-gradient(circle, ${player.color}44 0%, ${player.color}11 70%, transparent 100%)`,
+                  filter: `blur(2px)`,
+                  zIndex: -1,
+                }}
+              />
+              
+              {/* Motion streaks for speed effect */}
+              {player.isAlive && (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(${player.dir === "UP" ? "180deg" : player.dir === "DOWN" ? "0deg" : player.dir === "LEFT" ? "90deg" : "270deg"}, ${player.color}33 0%, transparent 100%)`,
+                    opacity: 0.4,
+                  }}
+                />
+              )}
+
+              {/* Core cycle */}
               <LightCycle color={player.color} dir={player.dir} isAlive={player.isAlive} />
+
+              {/* Energy glow around cycle */}
+              {player.isAlive && (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    boxShadow: `
+                      0 0 8px ${player.color},
+                      0 0 16px ${player.color}77,
+                      inset 0 0 6px ${player.color}33
+                    `,
+                    borderRadius: "2px",
+                    animation: "pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                  }}
+                />
+              )}
             </div>
           </React.Fragment>
         ))}
