@@ -561,9 +561,25 @@ export function TronGame() {
             score -= distToUser * (0.5 * level)
           }
 
+          // Add randomness factor for unpredictable behavior
+          const randomFactor = (Math.random() - 0.5) * (level * 15)
+          score += randomFactor
+
           return { dir: d, score }
         })
         .sort((a, b) => b.score - a.score)
+
+      // Introduce occasional random decisions (more likely at higher levels)
+      const randomChance = Math.random()
+      const shouldBeRandom = randomChance < (0.1 + level * 0.08)
+
+      if (shouldBeRandom && ratedDirs.length > 1) {
+        // Pick a random valid direction instead of optimal
+        const validDirs = ratedDirs.filter((d) => d.score > -5000)
+        if (validDirs.length > 0) {
+          return validDirs[Math.floor(Math.random() * validDirs.length)].dir
+        }
+      }
 
       return ratedDirs[0].score < -5000 ? aiPlayer.dir : ratedDirs[0].dir
     },

@@ -67,64 +67,41 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     if (audioInitialized.current) return
     audioInitialized.current = true
 
-    const initAudio = () => {
-      if (audioSourceRef.current) return
+    const audio = new Audio("/tron-intro.wav")
+    audio.volume = 0.75
+    audio.autoplay = false
+    audio.loop = false
+    audio.preload = "auto"
+    audioSourceRef.current = audio
 
-      const audio = new Audio("/tron-intro.wav")
-      audio.volume = 0.75
-      audio.autoplay = false
-      audio.loop = false
-      audio.preload = "auto"
+    const playAudio = () => {
+      audio.currentTime = 0
+      const playPromise = audio.play()
       
-      const playAudio = () => {
-        audio.currentTime = 0
-        const playPromise = audio.play()
-        
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log("[v0] Audio playing successfully")
-            })
-            .catch((err) => {
-              console.log("[v0] Audio autoplay blocked:", err.name)
-              // Fallback: play on first user interaction
-              const resumeAudio = () => {
-                audio.play().catch((e) => console.log("[v0] Resume failed:", e.name))
-                document.removeEventListener("click", resumeAudio)
-                document.removeEventListener("keydown", resumeAudio)
-                document.removeEventListener("touchstart", resumeAudio)
-              }
-              document.addEventListener("click", resumeAudio, { once: true })
-              document.addEventListener("keydown", resumeAudio, { once: true })
-              document.addEventListener("touchstart", resumeAudio, { once: true })
-            })
-        }
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          // Fallback: play on first user interaction
+          const resumeAudio = () => {
+            audio.play().catch(() => {})
+            document.removeEventListener("click", resumeAudio)
+            document.removeEventListener("keydown", resumeAudio)
+            document.removeEventListener("touchstart", resumeAudio)
+          }
+          document.addEventListener("click", resumeAudio, { once: true })
+          document.addEventListener("keydown", resumeAudio, { once: true })
+          document.addEventListener("touchstart", resumeAudio, { once: true })
+        })
       }
-
-      // Listen for data loading
-      audio.addEventListener(
-        "canplay",
-        () => {
-          console.log("[v0] Audio ready, starting playback")
-          playAudio()
-        },
-        { once: true }
-      )
-
-      // Fallback if already loaded
-      if (audio.readyState >= 2) {
-        console.log("[v0] Audio already buffered, playing immediately")
-        playAudio()
-      }
-
-      audioSourceRef.current = audio
     }
 
-    // Small delay to ensure DOM is ready
-    const timer = setTimeout(initAudio, 100)
+    // Play audio immediately on first frame
+    if (audio.readyState >= 2) {
+      playAudio()
+    } else {
+      audio.addEventListener("canplay", playAudio, { once: true })
+    }
 
     return () => {
-      clearTimeout(timer)
       if (audioSourceRef.current) {
         audioSourceRef.current.pause()
         audioSourceRef.current.currentTime = 0
