@@ -62,39 +62,40 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     return audioCtxRef.current
   }, [])
 
-  // Initialize audio immediately on mount
+  // Initialize audio and play during portal phase
   useEffect(() => {
     if (audioInitialized.current) return
     audioInitialized.current = true
 
     const audio = new Audio("/tron-intro.wav")
-    audio.volume = 0.75
+    audio.volume = 0.8
     audio.autoplay = false
     audio.loop = false
     audio.preload = "auto"
     audioSourceRef.current = audio
 
-    // Play audio immediately on component mount
-    const playAudio = () => {
+    // Schedule audio to play at portal start (when animation begins)
+    const startAudio = () => {
       audio.currentTime = 0
       audio.play().catch(() => {
-        // Fallback: play on first user interaction if autoplay blocked
-        const startAudio = () => {
+        // Fallback: play on first user interaction
+        const resumeAudio = () => {
           audio.play().catch(() => {})
-          document.removeEventListener("click", startAudio)
-          document.removeEventListener("keydown", startAudio)
-          document.removeEventListener("touchstart", startAudio)
+          document.removeEventListener("click", resumeAudio)
+          document.removeEventListener("keydown", resumeAudio)
+          document.removeEventListener("touchstart", resumeAudio)
         }
-        document.addEventListener("click", startAudio, { once: true })
-        document.addEventListener("keydown", startAudio, { once: true })
-        document.addEventListener("touchstart", startAudio, { once: true })
+        document.addEventListener("click", resumeAudio, { once: true })
+        document.addEventListener("keydown", resumeAudio, { once: true })
+        document.addEventListener("touchstart", resumeAudio, { once: true })
       })
     }
 
-    // Play immediately when audio is ready
-    playAudio()
+    // Start audio with small delay to ensure audio element is ready
+    const audioTimer = setTimeout(startAudio, 100)
 
     return () => {
+      clearTimeout(audioTimer)
       if (audioSourceRef.current) {
         audioSourceRef.current.pause()
         audioSourceRef.current.currentTime = 0
@@ -326,18 +327,27 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext("2d")
+    const ctx = canvas.getContext("2d", { 
+      alpha: false, 
+      preserveDrawingBuffer: false,
+      antialias: false
+    })
     if (!ctx) return
 
+    // Reduce resize event processing
+    let resizeTimeout: NodeJS.Timeout | null = null
     let dpr = window.devicePixelRatio || 1
     const resize = () => {
-      dpr = window.devicePixelRatio || 1
-      canvas.width = window.innerWidth * dpr
-      canvas.height = window.innerHeight * dpr
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      if (resizeTimeout) clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(() => {
+        dpr = window.devicePixelRatio || 1
+        canvas.width = window.innerWidth * dpr
+        canvas.height = window.innerHeight * dpr
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      }, 150)
     }
     resize()
-    window.addEventListener("resize", resize)
+    window.addEventListener("resize", resize, { passive: true })
 
     const W = () => window.innerWidth
     const H = () => window.innerHeight
