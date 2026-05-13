@@ -9,8 +9,8 @@ import Link from "next/link"
 import { getStoryForLevel, type DialogueLine } from "@/lib/story"
 import { TronIcons } from "./tron-icons"
 
-const INITIAL_SPEED = 100
-const LEVEL_SPEED_UP = 0.85
+const INITIAL_SPEED = 100  // Normal speed for level 1
+const LEVEL_SPEED_UP = 0.85  // Progressive speed increase per level
 
 type Point = { x: number; y: number }
 type Direction = "UP" | "DOWN" | "LEFT" | "RIGHT"
@@ -33,26 +33,47 @@ function useGridDimensions() {
     function calc() {
       const w = window.innerWidth
       const h = window.innerHeight
+      const isPortrait = h > w
 
-      if (w < 480) {
-        // Small phones
-        const size = Math.min(w - 32, h * 0.45)
+      if (w < 360) {
+        // Very small phones (portrait)
+        const size = Math.min(w - 24, h * 0.4)
+        const cellSize = Math.max(5, Math.floor(size / 45))
+        const gridSize = Math.floor(size / cellSize)
+        setDims({ gridSize, cellSize })
+      } else if (w < 480) {
+        // Small to medium phones
+        const size = Math.min(w - 32, h * (isPortrait ? 0.48 : 0.8))
         const cellSize = Math.max(6, Math.floor(size / 50))
         const gridSize = Math.floor(size / cellSize)
         setDims({ gridSize, cellSize })
       } else if (w < 768) {
-        // Tablets / large phones
-        const size = Math.min(w - 48, h * 0.5)
+        // Tablets and large phones
+        const size = Math.min(w - 48, h * (isPortrait ? 0.55 : 0.8))
         const cellSize = Math.max(7, Math.floor(size / 55))
         const gridSize = Math.floor(size / cellSize)
         setDims({ gridSize, cellSize })
+      } else if (w < 1024) {
+        // iPad in portrait
+        const size = Math.min(w - 60, h * 0.7)
+        const cellSize = Math.max(8, Math.floor(size / 55))
+        const gridSize = Math.floor(size / cellSize)
+        setDims({ gridSize, cellSize })
       } else {
+        // iPad landscape / desktop
         setDims({ gridSize: 60, cellSize: 10 })
       }
     }
+
     calc()
-    window.addEventListener("resize", calc)
-    return () => window.removeEventListener("resize", calc)
+
+    const listener = () => calc()
+    window.addEventListener("resize", listener)
+    window.addEventListener("orientationchange", listener)
+    return () => {
+      window.removeEventListener("resize", listener)
+      window.removeEventListener("orientationchange", listener)
+    }
   }, [])
 
   return dims
@@ -356,9 +377,18 @@ function TouchControls({ onDirection }: { onDirection: (dir: Direction) => void 
     setPressed(null)
   }
 
+  // Responsive button sizing based on screen width
+  const getButtonSize = () => {
+    const w = typeof window !== "undefined" ? window.innerWidth : 1024
+    if (w < 360) return "w-10 h-10"  // Small phones
+    if (w < 480) return "w-12 h-12"  // Normal phones
+    if (w < 768) return "w-14 h-14"  // Large phones / tablets
+    return "w-16 h-16"  // iPad/desktop
+  }
+
   const ButtonStyles = (dir: Direction) => `
     flex items-center justify-center 
-    w-12 h-12 sm:w-14 sm:h-14
+    ${getButtonSize()}
     rounded-sm border-2
     transition-all duration-75
     ${pressed === dir 
@@ -370,8 +400,8 @@ function TouchControls({ onDirection }: { onDirection: (dir: Direction) => void 
   `
 
   return (
-    <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 select-none" style={{ touchAction: "none" }}>
-      <div className="grid grid-cols-3 grid-rows-3 gap-2 w-fit">
+    <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 select-none" style={{ touchAction: "none" }}>
+      <div className="grid grid-cols-3 grid-rows-3 gap-1.5 sm:gap-2 w-fit">
         {/* Row 1 */}
         <div />
         <button
@@ -444,6 +474,8 @@ export function TronGame() {
   const [isGlitching, setIsGlitching] = useState(false)
   const [totalWins, setTotalWins] = useState(0)
   const [totalLosses, setTotalLosses] = useState(0)
+  const [cycleParticles, setCycleParticles] = useState<Array<{ id: string; playerId: number; x: number; y: number; color: string; age: number; life: number }>>([])
+  const particleCounterRef = useRef(0)
 
   const speakerColors: Record<string, string> = useMemo(
     () => ({
@@ -521,15 +553,25 @@ export function TronGame() {
         return { x: p.x + 1, y: p.y }
       }
 
-      const isSafe = (pos: Point): boolean => {
+      // Check if position collides with any trail (own trail or opponent's trail)
+      const isSafe = (pos: Point, checkOwnTrail: boolean = true): boolean => {
         if (pos.x < 0 || pos.x >= gridSize || pos.y < 0 || pos.y >= gridSize) return false
-        return !allPlayers.some((p) => p.trail.some((t) => t.x === pos.x && t.y === pos.y))
+        
+        // Check opponent trail
+        const opponent = allPlayers.find((p) => p.id !== aiPlayer.id)
+        if (opponent && opponent.trail.some((t) => t.x === pos.x && t.y === pos.y)) return false
+        
+        // Check own trail to avoid self-collision
+        if (checkOwnTrail && aiPlayer.trail.some((t) => t.x === pos.x && t.y === pos.y)) return false
+        
+        return true
       }
 
       const user = allPlayers.find((p) => p.id === 1)!
 
       const ratedDirs = dirs
         .filter((d) => {
+          // Never reverse direction (suicide prevention)
           if (aiPlayer.dir === "UP" && d === "DOWN") return false
           if (aiPlayer.dir === "DOWN" && d === "UP") return false
           if (aiPlayer.dir === "LEFT" && d === "RIGHT") return false
@@ -539,33 +581,63 @@ export function TronGame() {
         .map((d) => {
           const next = getNextPos(aiPlayer.pos, d)
           let score = 0
-          if (!isSafe(next)) score -= 10000
+          
+          // Immediate death - avoid at all costs
+          if (!isSafe(next, true)) {
+            score -= 50000
+            return { dir: d, score }
+          }
 
-          const lookAhead = 3 + Math.floor(level * 1.5)
+          // Deep lookahead - much deeper to avoid trap corridors
+          const lookAhead = 5 + Math.floor(level * 2)
           let tempPos = { ...next }
-          let spaceFound = 0
+          let safeStepsFound = 0
 
           for (let i = 0; i < lookAhead; i++) {
             tempPos = getNextPos(tempPos, d)
-            if (!isSafe(tempPos)) {
-              score -= (lookAhead - i) * 200
+            if (!isSafe(tempPos, false)) {
+              // Penalize based on how soon the wall appears
+              score -= (lookAhead - i) * 300
               break
             }
-            spaceFound++
+            safeStepsFound++
           }
 
-          score += spaceFound * 50
+          // Reward abundant space
+          score += safeStepsFound * 80
 
+          // Strategic positioning: hunt the player
           const distToUser = Math.abs(next.x - user.pos.x) + Math.abs(next.y - user.pos.y)
-          if (level > 2) {
-            score -= distToUser * (0.5 * level)
+          
+          // Only chase aggressively at higher levels
+          if (level >= 2) {
+            // Prefer moving toward user
+            score -= distToUser * (0.3 * level)
           }
+
+          // Minimal randomness - makes AI predictable but smart
+          const randomFactor = (Math.random() - 0.5) * (level <= 1 ? 0 : 3)
+          score += randomFactor
 
           return { dir: d, score }
         })
         .sort((a, b) => b.score - a.score)
 
-      return ratedDirs[0].score < -5000 ? aiPlayer.dir : ratedDirs[0].dir
+      // Rarely make a suboptimal choice (only on high levels, and only if safe)
+      const randomChance = Math.random()
+      const shouldBeRandom = randomChance < (level <= 1 ? 0.02 : level === 2 ? 0.08 : 0.12)
+
+      if (shouldBeRandom && ratedDirs.length > 1) {
+        // Only pick from SAFE directions
+        const safeDirs = ratedDirs.filter((d) => d.score > -10000)
+        if (safeDirs.length > 0) {
+          return safeDirs[Math.floor(Math.random() * Math.min(2, safeDirs.length))].dir
+        }
+      }
+
+      // Default to best scored safe direction
+      const bestDir = ratedDirs.find((d) => d.score > -10000)
+      return bestDir ? bestDir.dir : aiPlayer.dir
     },
     [gridSize, level],
   )
@@ -662,6 +734,15 @@ export function TronGame() {
     if (player.dir === "LEFT") newPos.x -= 1
     if (player.dir === "RIGHT") newPos.x += 1
 
+    // Light cycle sound effect - subtle tone when moving
+    if (player.id === 1) {
+      // Player cycle - higher frequency
+      playSound(280 + Math.random() * 20, "triangle", 0.02, 0.03)
+    } else {
+      // CLU cycle - lower frequency
+      playSound(200 + Math.random() * 20, "sine", 0.02, 0.02)
+    }
+
     return {
       ...player,
       pos: newPos,
@@ -709,35 +790,94 @@ export function TronGame() {
   )
 
   useGameLoop((delta) => {
-    lastUpdateRef.current += delta
-    if (lastUpdateRef.current < speed) return
-    lastUpdateRef.current = 0
+    if (gameState !== "PLAYING") return
+    
+    try {
+      lastUpdateRef.current += delta
+      if (lastUpdateRef.current < speed) return
+      lastUpdateRef.current = 0
 
-    setPlayers((prev) => {
-      const updatedWithAI = prev.map((p) => {
-        if (p.isAI && p.isAlive) {
-          return { ...p, dir: getAIDirection(p, prev) }
+      setPlayers((prev) => {
+        try {
+          // Safety check for corrupted state
+          if (!Array.isArray(prev) || prev.length === 0) {
+            return prev
+          }
+
+          const updatedWithAI = prev.map((p) => {
+            try {
+              if (p.isAI && p.isAlive) {
+                return { ...p, dir: getAIDirection(p, prev) }
+              }
+            } catch (e) {
+              console.error("[v0] AI error:", e)
+            }
+            return p
+          })
+
+          const movedPlayers = updatedWithAI.map((p) => (p.isAlive ? movePlayer(p) : p))
+          const collisionResults = movedPlayers.map((p) => checkCollision(p, movedPlayers))
+
+          const finalPlayers = movedPlayers.map((p, i) => ({
+            ...p,
+            isAlive: p.isAlive && !collisionResults[i],
+          }))
+
+          // Emit particles from alive cycles - optimized for performance on all devices
+          setCycleParticles((prev) => {
+            try {
+              let newParticles = [...prev]
+              
+              // Update existing particles
+              newParticles = newParticles
+                .map((p) => ({ ...p, age: p.age + 1 }))
+                .filter((p) => p.age < p.life)
+
+              // Adaptive particle limits based on screen size
+              const isMobile = typeof window !== "undefined" && window.innerWidth < 768
+              const maxParticles = isMobile ? 50 : 80
+              const emitChance = isMobile ? 0.5 : 0.6
+
+              if (newParticles.length < maxParticles && Math.random() > emitChance) {
+                for (const player of finalPlayers) {
+                  if (player.isAlive && newParticles.length < maxParticles) {
+                    const newParticle = {
+                      id: `${player.id}-${particleCounterRef.current++}`,
+                      playerId: player.id,
+                      x: player.pos.x,
+                      y: player.pos.y,
+                      color: player.color,
+                      age: 0,
+                      life: 5 + Math.random() * 2,
+                    }
+                    newParticles.push(newParticle)
+                  }
+                }
+              }
+
+              return newParticles.slice(-maxParticles)
+            } catch (e) {
+              console.error("[v0] Particle error:", e)
+              return prev
+            }
+          })
+
+          const aliveCount = finalPlayers.filter((p) => p.isAlive).length
+          if (aliveCount <= 1 && gameState === "PLAYING") {
+            const wp = finalPlayers.find((p) => p.isAlive)
+            handleGameOver(wp)
+          }
+
+          return finalPlayers
+        } catch (e) {
+          console.error("[v0] Game state error:", e)
+          return prev
         }
-        return p
       })
-
-      const movedPlayers = updatedWithAI.map((p) => (p.isAlive ? movePlayer(p) : p))
-      const collisionResults = movedPlayers.map((p) => checkCollision(p, movedPlayers))
-
-      const finalPlayers = movedPlayers.map((p, i) => ({
-        ...p,
-        isAlive: p.isAlive && !collisionResults[i],
-      }))
-
-      const aliveCount = finalPlayers.filter((p) => p.isAlive).length
-      if (aliveCount <= 1 && gameState === "PLAYING") {
-        const wp = finalPlayers.find((p) => p.isAlive)
-        handleGameOver(wp)
-      }
-
-      return finalPlayers
-    })
-  }, gameState === "PLAYING")
+    } catch (e) {
+      console.error("[v0] Game loop error:", e)
+    }
+  }, [gameState, speed, handleGameOver])
 
   const pixelWidth = gridSize * cellSize
   const pixelHeight = gridSize * cellSize
@@ -751,17 +891,17 @@ export function TronGame() {
       <div className="scanline" />
 
       {/* Header */}
-      <div className="flex flex-col items-center z-10 pt-3 md:pt-0 md:mb-4 mb-2">
-        <h1 className="text-3xl md:text-6xl font-black italic tracking-tighter text-primary filter drop-shadow-[0_0_8px_rgba(0,242,255,0.8)]">
+      <div className="flex flex-col items-center z-10 pt-2 sm:pt-3 md:pt-0 md:mb-4 mb-1 sm:mb-2">
+        <h1 className="text-2xl sm:text-4xl md:text-6xl font-black italic tracking-tighter text-primary filter drop-shadow-[0_0_8px_rgba(0,242,255,0.8)]">
           TRON
         </h1>
-        <div className="text-[6px] md:text-[8px] tracking-[0.5em] md:tracking-[0.8em] text-primary/50 mt-0.5 md:mt-1 uppercase">
+        <div className="text-[5px] sm:text-[6px] md:text-[8px] tracking-[0.4em] sm:tracking-[0.5em] md:tracking-[0.8em] text-primary/50 mt-0.5 md:mt-1 uppercase">
           Light Cycle Program
         </div>
       </div>
 
       {/* Status bar - mobile compact */}
-      <div className="flex items-center justify-between w-full max-w-[600px] px-4 md:px-0 mb-2 md:mb-4 z-10">
+      <div className="flex items-center justify-between w-full max-w-[600px] px-3 sm:px-4 md:px-0 mb-1 sm:mb-2 md:mb-4 z-10">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3">
@@ -807,6 +947,28 @@ export function TronGame() {
         />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.5)_100%)] pointer-events-none" />
 
+        {/* Cycle particles */}
+        {cycleParticles.map((particle) => {
+          const opacity = 1 - particle.age / particle.life
+          const size = cellSize * (0.2 + Math.sin(particle.age * 0.5) * 0.1)
+          return (
+            <div
+              key={particle.id}
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                left: particle.x * cellSize + (cellSize - size) / 2,
+                top: particle.y * cellSize + (cellSize - size) / 2,
+                width: size,
+                height: size,
+                backgroundColor: particle.color,
+                boxShadow: `0 0 4px ${particle.color}, 0 0 8px ${particle.color}88`,
+                opacity: opacity * 0.7,
+                transform: `scale(${1 - opacity * 0.3})`,
+              }}
+            />
+          )
+        })}
+
         {/* Trails and cycles */}
         {players.map((player) => (
           <React.Fragment key={player.id}>
@@ -843,7 +1005,45 @@ export function TronGame() {
                 height: cellSize,
               }}
             >
+              {/* Glow halo effect */}
+              <div
+                className="absolute inset-0 animate-pulse"
+                style={{
+                  background: `radial-gradient(circle, ${player.color}44 0%, ${player.color}11 70%, transparent 100%)`,
+                  filter: `blur(2px)`,
+                  zIndex: -1,
+                }}
+              />
+              
+              {/* Motion streaks for speed effect */}
+              {player.isAlive && (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(${player.dir === "UP" ? "180deg" : player.dir === "DOWN" ? "0deg" : player.dir === "LEFT" ? "90deg" : "270deg"}, ${player.color}33 0%, transparent 100%)`,
+                    opacity: 0.4,
+                  }}
+                />
+              )}
+
+              {/* Core cycle */}
               <LightCycle color={player.color} dir={player.dir} isAlive={player.isAlive} />
+
+              {/* Energy glow around cycle */}
+              {player.isAlive && (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    boxShadow: `
+                      0 0 8px ${player.color},
+                      0 0 16px ${player.color}77,
+                      inset 0 0 6px ${player.color}33
+                    `,
+                    borderRadius: "2px",
+                    animation: "pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                  }}
+                />
+              )}
             </div>
           </React.Fragment>
         ))}

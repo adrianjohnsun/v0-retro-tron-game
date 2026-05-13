@@ -47,6 +47,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
   const audioSourceRef = useRef<HTMLAudioElement | null>(null)
   const animFrameRef = useRef<number>(0)
   const completedRef = useRef(false)
+  const audioInitialized = useRef(false)
   const dataRef = useRef<{
     particles: DataShard[]
     tunnelRings: TunnelRing[]
@@ -59,6 +60,46 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       audioCtxRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
     }
     return audioCtxRef.current
+  }, [])
+
+  // Initialize audio immediately on mount
+  useEffect(() => {
+    if (audioInitialized.current) return
+    audioInitialized.current = true
+
+    const audio = new Audio("/tron-intro.wav")
+    audio.volume = 0.75
+    audio.autoplay = false
+    audio.loop = false
+    audio.preload = "auto"
+    audioSourceRef.current = audio
+
+    // Play audio immediately on component mount
+    const playAudio = () => {
+      audio.currentTime = 0
+      audio.play().catch(() => {
+        // Fallback: play on first user interaction if autoplay blocked
+        const startAudio = () => {
+          audio.play().catch(() => {})
+          document.removeEventListener("click", startAudio)
+          document.removeEventListener("keydown", startAudio)
+          document.removeEventListener("touchstart", startAudio)
+        }
+        document.addEventListener("click", startAudio, { once: true })
+        document.addEventListener("keydown", startAudio, { once: true })
+        document.addEventListener("touchstart", startAudio, { once: true })
+      })
+    }
+
+    // Play immediately when audio is ready
+    playAudio()
+
+    return () => {
+      if (audioSourceRef.current) {
+        audioSourceRef.current.pause()
+        audioSourceRef.current.currentTime = 0
+      }
+    }
   }, [])
 
   // Deep bass heartbeat — Daft Punk / Tron Legacy score feel
@@ -177,30 +218,34 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     const octx = off.getContext("2d")
     if (!octx) return
 
-    const fontSize = Math.min(w * 0.13, 130)
+    const fontSize = Math.min(w * 0.14, 160)
     off.width = w
-    off.height = fontSize * 3.2
+    off.height = fontSize * 3.5
 
-    // TRON — bold condensed
+    // TRON — ultra-bold with stroke for maximum density
     octx.fillStyle = "#fff"
-    octx.font = `900 ${fontSize}px "Courier New", monospace`
+    octx.font = `900 ${fontSize}px Arial Black, sans-serif`
     octx.textAlign = "center"
     octx.textBaseline = "middle"
+    octx.strokeStyle = "#fff"
+    octx.lineWidth = 3
+    octx.strokeText("TRON", off.width / 2, fontSize * 0.6)
     octx.fillText("TRON", off.width / 2, fontSize * 0.6)
 
-    // Horizontal separator
-    const lineY = fontSize * 1.05
-    octx.fillRect(off.width / 2 - fontSize * 1.3, lineY, fontSize * 2.6, 1.5)
+    // Horizontal separator - much thicker with stroke
+    const lineY = fontSize * 1.1
+    octx.fillRect(off.width / 2 - fontSize * 1.6, lineY - 2, fontSize * 3.2, 6)
 
-    // RETRO
-    const subSize = fontSize * 0.38
-    octx.font = `300 ${subSize}px "Courier New", monospace`
-    octx.letterSpacing = "0.5em"
-    octx.fillText("R E T R O", off.width / 2, fontSize * 1.55)
+    // RETRO — ultra-bold with stroke
+    const subSize = fontSize * 0.48
+    octx.font = `900 ${subSize}px Arial Black, sans-serif`
+    octx.textAlign = "center"
+    octx.strokeText("RETRO", off.width / 2, fontSize * 1.75)
+    octx.fillText("RETRO", off.width / 2, fontSize * 1.75)
 
     const imgData = octx.getImageData(0, 0, off.width, off.height)
-    // Tighter spacing for more particles = denser reconstruction
-    const spacing = Math.max(2, Math.floor(fontSize / 30))
+    // Ultra-maximum density particles for rock-solid logo - tighter than ever
+    const spacing = Math.max(1, Math.floor(fontSize / 85))
 
     // Position title higher (top 35% of screen) to leave room for menu below
     const offsetX = (w - off.width) / 2
@@ -241,9 +286,12 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
             sAngle = -Math.PI / 2
           }
 
-          // Tron Legacy palette: predominantly cold cyan-white with rare warm orange
-          const isOrange = Math.random() < 0.04
-          const isBrightCyan = Math.random() < 0.3
+          // Tron Legacy palette: predominantly cold cyan-white with warm orange accents
+          // Assign particles to words: cyan for TRON, orange for RETRO
+          const textY = h * 0.18
+          const isRetroLine = targetY > textY + 40
+          const isOrange = isRetroLine && Math.random() < 0.7  // More orange in RETRO line
+          const isBrightCyan = !isOrange && Math.random() < 0.6  // Brighter cyan for TRON
 
           data.particles.push({
             x: spawnX,
@@ -251,11 +299,11 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
             tx: targetX,
             ty: targetY,
             z: Math.random() * 60,
-            w: 1 + Math.random() * 2,   // rectangular shards
-            h: 0.5 + Math.random() * 1.5,
-            hue: isOrange ? 25 + Math.random() * 12 : 190 + Math.random() * 8,
-            sat: isOrange ? 100 : 80 + Math.random() * 20,
-            lum: isBrightCyan ? 85 + Math.random() * 15 : 60 + Math.random() * 25,
+            w: 2 + Math.random() * 2.5,   // larger rectangles for visibility
+            h: 1 + Math.random() * 2,
+            hue: isOrange ? 25 + Math.random() * 10 : 190 + Math.random() * 5,
+            sat: isOrange ? 100 : 95 + Math.random() * 5,
+            lum: isOrange ? 75 + Math.random() * 20 : 75 + Math.random() * 20,  // Much brighter for solid colors
             alpha: 0,
             speed: 0.012 + Math.random() * 0.02,
             phase: Math.random() * Math.PI * 2,
@@ -266,8 +314,9 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
             streamAngle: sAngle,
             streamSpeed: 1 + Math.random() * 3,
             glowIntensity: 0.3 + Math.random() * 0.7,
-            snapDelay: particleIndex * 0.00004, // staggered arrival
+            snapDelay: particleIndex * 0.000015, // faster staggered arrival for tighter formation
           })
+
           particleIndex++
         }
       }
@@ -295,7 +344,8 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
 
     const data = dataRef.current
     data.tunnelRings = []
-    for (let i = 0; i < 35; i++) {
+    const ringCount = window.innerWidth > 768 ? 35 : 20  // Fewer rings on mobile
+    for (let i = 0; i < ringCount; i++) {
       data.tunnelRings.push({
         z: i * 55 + Math.random() * 25,
         speed: 3.5 + Math.random() * 3,
@@ -308,28 +358,6 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     const startTime = performance.now()
     data.startTime = startTime
 
-    // Initialize audio element for background soundtrack
-    const initAudio = () => {
-      if (!audioSourceRef.current) {
-        const audio = new Audio("/tron-intro.wav")
-        audio.volume = 0.7
-        audio.style.display = "none"
-        document.body.appendChild(audio)
-        audioSourceRef.current = audio
-      }
-    }
-
-    const audioTriggered = {
-      audioStarted: false,
-      whoosh: false,
-      beat1: false,
-      glitch1: false,
-      beat2: false,
-      chime: false,
-      glitch2: false,
-      beat3: false,
-    }
-
     const animate = (now: number) => {
       const elapsed = now - startTime
       const progress = Math.min(elapsed / DURATION, 1)
@@ -338,45 +366,46 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       const cx = w / 2
       const cy = h / 2
 
-      // Audio trigger - start the soundtrack immediately
-      if (!audioTriggered.audioStarted) {
-        audioTriggered.audioStarted = true
-        initAudio()
-        if (audioSourceRef.current) {
-          audioSourceRef.current.currentTime = 0
-          audioSourceRef.current.play().catch(() => {
-            /* audio autoplay policy may prevent playback */
-          })
-        }
+      // Play audio at very beginning of animation
+      if (progress < 0.01 && audioSourceRef.current && audioSourceRef.current.paused) {
+        audioSourceRef.current.currentTime = 0
+        audioSourceRef.current.play().catch(() => {})
       }
 
       // === CLEAR ===
       ctx.fillStyle = "#000608"
       ctx.fillRect(0, 0, w, h)
 
-      // === PHASE 1: TUNNEL (0 - 0.5) ===
-      if (progress < 0.65) {
-        const tp = Math.min(1, progress / 0.5)
+      // === PHASE 1: TUNNEL ONLY (0 - 0.375 = 3 seconds) ===
+      if (progress < 0.375) {
+        const tp = Math.min(1, progress / 0.375)
         const accel = 1 + tp * tp * 10
 
         // Infinite perspective grid — floor + ceiling
         ctx.save()
         const vanishY = cy * 0.35
+        const h75 = h * 0.75
+        const offset = ((elapsed * 0.003 * accel) % 1) * (h75 / 20)
+        const baseAlpha = (1 - tp * 0.6) * 0.4
 
-        for (let i = 0; i < 45; i++) {
-          const z = (i / 45) * 20 + 1
-          const screenY = vanishY + (h * 0.75) / z
-          const offset = ((elapsed * 0.003 * accel) % 1) * (h * 0.75 / 20)
-          const a = Math.max(0, (1 - tp * 0.6) * 0.4 * (1 - i / 45))
+        // Optimize: Draw grid lines with adaptive density based on screen size
+        ctx.lineWidth = 0.5
+        const gridDensity = w > 768 ? 2 : 3  // Fewer lines on mobile
+        const gridLines = Math.floor(36 / gridDensity)
+        for (let i = 0; i < gridLines; i++) {
+          const ii = i * gridDensity
+          const z = (ii / 36) * 20 + 1
+          const screenY = vanishY + h75 / z
+          const a = Math.max(0, baseAlpha * (1 - ii / 36))
 
+          // Floor grid
           ctx.strokeStyle = `hsla(190, 90%, 55%, ${a})`
-          ctx.lineWidth = 0.5
           ctx.beginPath()
           ctx.moveTo(0, screenY + offset)
           ctx.lineTo(w, screenY + offset)
           ctx.stroke()
 
-          // Ceiling
+          // Ceiling with reduced opacity
           const my = vanishY - (screenY - vanishY) * 0.5
           ctx.strokeStyle = `hsla(190, 80%, 45%, ${a * 0.25})`
           ctx.beginPath()
@@ -385,8 +414,9 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           ctx.stroke()
         }
 
-        // Converging verticals
-        for (let i = -18; i <= 18; i++) {
+        // Converging verticals - optimized
+        ctx.strokeStyle = `hsla(190, 85%, 50%, ${baseAlpha * 0.6})`
+        for (let i = -16; i <= 16; i += 1) {
           const xBase = cx + (i / 18) * w * 0.95
           const a = Math.max(0, (1 - Math.abs(i) / 18) * 0.3 * (1 - tp * 0.3))
           ctx.strokeStyle = `hsla(190, 90%, 50%, ${a})`
@@ -426,30 +456,39 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           }
         }
 
-        // Speed streaks
-        for (let i = 0; i < 160; i++) {
+        // Speed streaks - optimized for performance
+        const isMobile = w <= 768
+        const maxStreaks = isMobile ? (tp > 0.5 ? 60 : 40) : (tp > 0.5 ? 120 : 80)
+        const streakOpacity = Math.min(1, tp * 2.8)
+        const maxDist = Math.max(w, h) * 0.85
+        
+        for (let i = 0; i < maxStreaks; i++) {
           const seed = i * 7919 + 3
           const angle = ((seed % 1000) / 1000) * Math.PI * 2
           const baseDist = (seed % 777) / 777
           const spd = 1.8 + ((seed % 500) / 500) * 5
 
           const streakP = ((elapsed * 0.001 * spd * (0.4 + tp) + baseDist) % 1)
-          const d = streakP * Math.max(w, h) * 0.85
+          const d = streakP * maxDist
           const len = 12 + ((seed % 300) / 300) * 45 * (0.4 + tp)
-          const a = Math.min(1, tp * 2.8) * (1 - streakP) * 0.5
+          const a = streakOpacity * (1 - streakP) * 0.5
 
-          const x1 = cx + Math.cos(angle) * d
-          const y1 = cy + Math.sin(angle) * d
-          const x2 = cx + Math.cos(angle) * (d + len)
-          const y2 = cy + Math.sin(angle) * (d + len)
+          if (a > 0.02) {  // Skip nearly invisible streaks
+            const cosA = Math.cos(angle)
+            const sinA = Math.sin(angle)
+            const x1 = cx + cosA * d
+            const y1 = cy + sinA * d
+            const x2 = cx + cosA * (d + len)
+            const y2 = cy + sinA * (d + len)
 
-          const hue = (seed % 12) < 1 ? 28 : 190
-          ctx.strokeStyle = `hsla(${hue}, 100%, 68%, ${a})`
-          ctx.lineWidth = 0.25 + ((seed % 200) / 200) * 1.3 * (1 - streakP * 0.5)
-          ctx.beginPath()
-          ctx.moveTo(x1, y1)
-          ctx.lineTo(x2, y2)
-          ctx.stroke()
+            const hue = (seed % 12) < 1 ? 28 : 190
+            ctx.strokeStyle = `hsla(${hue}, 100%, 68%, ${a})`
+            ctx.lineWidth = 0.25 + ((seed % 200) / 200) * 1.3 * (1 - streakP * 0.5)
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.stroke()
+          }
         }
 
         // Central vortex
@@ -463,67 +502,84 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         ctx.fillRect(cx - coreSize, cy - coreSize, coreSize * 2, coreSize * 2)
       }
 
-      // === PHASE 2: TITLE PARTICLE RECONSTRUCTION (0.35 - 0.85) ===
-      if (progress > 0.35) {
+      // === PHASE 2: TITLE PARTICLE RECONSTRUCTION (0.375 - 1.0 = 5 seconds) ===
+      if (progress >= 0.375) {
         buildTitleParticles(w, h)
 
-        const titleP = Math.min(1, (progress - 0.35) / 0.5)
-        const easeTitle = 1 - Math.pow(1 - titleP, 4)
+        const titleP = Math.min(1, (progress - 0.375) / 0.625)  // 5 seconds for complete formation
+        // Extremely aggressive easing - particles snap into place fast
+        const easeTitle = titleP < 0.15 ? titleP * 6.67 : 1  // Reach full easing in first 0.09 seconds
 
         // Heartbeat pulse
         const hbFreq = 2.0
         const heartbeat = Math.pow(Math.max(0, Math.sin(elapsed * 0.001 * hbFreq * Math.PI * 2)), 14)
 
         for (const p of data.particles) {
-          // Staggered fade in
-          const staggeredP = Math.max(0, titleP - p.snapDelay * 1000)
-          p.alpha = Math.min(1, staggeredP * 3.5)
+          // Staggered fade in - ultra-aggressive with no delay
+          const staggeredP = Math.max(0, titleP - p.snapDelay * 100)  // Much faster onset
+          p.alpha = Math.min(1, staggeredP * 8)  // Reach full opacity faster
 
-          if (easeTitle > 0) {
+          if (easeTitle > 0.05) {  // Start moving particles earlier
             const dx = p.tx - p.x
             const dy = p.ty - p.y
             const dist = Math.sqrt(dx * dx + dy * dy)
 
-            // Data stream behavior: particles initially follow their stream angle,
-            // then curve toward target
-            const convergeFactor = p.speed * (1 + easeTitle * 3.5)
-            const streamInfluence = Math.max(0, 1 - easeTitle * 2)
+            // Hyper-aggressive convergence - particles attack their targets
+            const convergeFactor = p.speed * (1 + easeTitle * 12) * 2.2  // Much faster movement
+            const streamInfluence = Math.max(0, 1 - easeTitle * 3)
 
             p.x += dx * convergeFactor + Math.cos(p.streamAngle) * p.streamSpeed * streamInfluence
             p.y += dy * convergeFactor + Math.sin(p.streamAngle) * p.streamSpeed * streamInfluence
 
-            // Data stream trail — rectangular fragments
-            if (dist > 4 && titleP < 0.85) {
+            // Data stream trail — rectangular fragments (skip distance check for performance)
+            if (titleP < 0.85 && Math.random() > 0.65) {
               p.trail.push({ x: p.x, y: p.y, a: 0.35, w: p.w * 0.6, h: p.h * 0.6 })
-              if (p.trail.length > 8) p.trail.shift()
+              if (p.trail.length > 6) p.trail.shift()
             }
 
-            if (dist < 1.2 && !p.arrived) {
+            // Much more lenient arrival threshold - particles lock in sooner
+            if (dist < 3 && !p.arrived) {
               p.arrived = true
               p.arriveTime = elapsed
+              // Force exact position once arrived
+              p.x = p.tx
+              p.y = p.ty
+            }
+          } else {
+            // If easeTitle is very high, force arrival
+            if (titleP > 0.5 && !p.arrived) {
+              p.arrived = true
+              p.arriveTime = elapsed
+              p.x = p.tx
+              p.y = p.ty
             }
           }
+        }
 
-          // Draw trail — Tron Legacy data stream: sharp rectangular fragments fading
-          for (const tr of p.trail) {
-            tr.a *= 0.82
-            if (tr.a > 0.015) {
-              ctx.fillStyle = `hsla(${p.hue}, ${p.sat}%, 70%, ${tr.a * p.alpha})`
-              ctx.fillRect(tr.x - tr.w / 2, tr.y - tr.h / 2, tr.w, tr.h)
+        // Render trails (skip for cleaner look during title phase)
+        if (titleP < 0.4) {
+          for (const p of data.particles) {
+            for (const t of p.trail) {
+              ctx.fillStyle = `hsla(${p.hue}, ${p.sat}%, ${p.lum}%, ${t.a})`
+              ctx.fillRect(t.x - t.w / 2, t.y - t.h / 2, t.w, t.h)
             }
           }
-          p.trail = p.trail.filter(t => t.a > 0.015)
+        }
 
-          // Draw particle — sharp luminous rectangle
-          const flicker = p.arrived
-            ? 0.82 + Math.sin(elapsed * 0.001 * p.flickerRate + p.phase) * 0.18 + heartbeat * 0.12
-            : 0.3 + titleP * 0.5
+        // Render particles - FULL POWER - STAY PERMANENTLY BRIGHT
+        for (const p of data.particles) {
+          // Particles lock into full brightness and stay there
+          const sw = p.w
+          const sh = p.h
+          
+          // After particles arrive, they stay at full brightness permanently
+          const bright = Math.min(100, 85 + heartbeat * 10)  // Always 85-95% brightness after arrival
+          const satBoost = 100  // Full saturation for cyan and orange
+          
+          // Once arrived, full opacity - never fade
+          const finalAlpha = p.arrived ? 1.0 : Math.min(1, p.alpha)
 
-          const sw = p.arrived ? p.w * (1 + heartbeat * 0.15) : p.w
-          const sh = p.arrived ? p.h * (1 + heartbeat * 0.15) : p.h
-          const bright = p.arrived ? Math.min(100, p.lum + heartbeat * 18) : p.lum * 0.6
-
-          ctx.fillStyle = `hsla(${p.hue}, ${p.sat}%, ${bright}%, ${flicker * p.alpha})`
+          ctx.fillStyle = `hsla(${p.hue}, ${satBoost}%, ${bright}%, ${finalAlpha})`
           ctx.fillRect(p.x - sw / 2, p.y - sh / 2, sw, sh)
 
           // Subtle glow halo on arrived particles (not all — sparse like Legacy)
@@ -618,12 +674,9 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       if (audioSourceRef.current) {
         audioSourceRef.current.pause()
         audioSourceRef.current.currentTime = 0
-        if (audioSourceRef.current.parentNode) {
-          audioSourceRef.current.parentNode.removeChild(audioSourceRef.current)
-        }
       }
     }
-    }, [onComplete, buildTitleParticles])
+  }, [onComplete, buildTitleParticles])
 
   return (
     <canvas

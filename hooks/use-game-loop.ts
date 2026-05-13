@@ -7,7 +7,7 @@ export function useGameLoop(callback: (delta: number) => void, active: boolean) 
   const previousTimeRef = useRef<number>(null)
 
   const animate = (time: number) => {
-    if (previousTimeRef.current !== undefined) {
+    if (previousTimeRef.current !== null && previousTimeRef.current !== undefined) {
       const deltaTime = time - previousTimeRef.current
       callback(deltaTime)
     }
