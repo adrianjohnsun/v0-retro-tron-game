@@ -767,69 +767,94 @@ export function TronGame() {
   )
 
   useGameLoop((delta) => {
-    lastUpdateRef.current += delta
-    if (lastUpdateRef.current < speed) return
-    lastUpdateRef.current = 0
+    if (gameState !== "PLAYING") return
+    
+    try {
+      lastUpdateRef.current += delta
+      if (lastUpdateRef.current < speed) return
+      lastUpdateRef.current = 0
 
-    setPlayers((prev) => {
-      const updatedWithAI = prev.map((p) => {
-        if (p.isAI && p.isAlive) {
-          return { ...p, dir: getAIDirection(p, prev) }
-        }
-        return p
-      })
-
-      const movedPlayers = updatedWithAI.map((p) => (p.isAlive ? movePlayer(p) : p))
-      const collisionResults = movedPlayers.map((p) => checkCollision(p, movedPlayers))
-
-      const finalPlayers = movedPlayers.map((p, i) => ({
-        ...p,
-        isAlive: p.isAlive && !collisionResults[i],
-      }))
-
-      // Emit particles from alive cycles - optimized for performance on all devices
-      setCycleParticles((prev) => {
-        let newParticles = [...prev]
-        
-        // Update existing particles
-        newParticles = newParticles
-          .map((p) => ({ ...p, age: p.age + 1 }))
-          .filter((p) => p.age < p.life)
-
-        // Adaptive particle limits based on screen size
-        const isMobile = window.innerWidth < 768
-        const maxParticles = isMobile ? 50 : 80
-        const emitChance = isMobile ? 0.5 : 0.6
-
-        if (newParticles.length < maxParticles && Math.random() > emitChance) {
-          for (const player of finalPlayers) {
-            if (player.isAlive && newParticles.length < maxParticles) {
-              const newParticle = {
-                id: `${player.id}-${particleCounterRef.current++}`,
-                playerId: player.id,
-                x: player.pos.x,
-                y: player.pos.y,
-                color: player.color,
-                age: 0,
-                life: 5 + Math.random() * 2,
-              }
-              newParticles.push(newParticle)
-            }
+      setPlayers((prev) => {
+        try {
+          // Safety check for corrupted state
+          if (!Array.isArray(prev) || prev.length === 0) {
+            return prev
           }
+
+          const updatedWithAI = prev.map((p) => {
+            try {
+              if (p.isAI && p.isAlive) {
+                return { ...p, dir: getAIDirection(p, prev) }
+              }
+            } catch (e) {
+              console.error("[v0] AI error:", e)
+            }
+            return p
+          })
+
+          const movedPlayers = updatedWithAI.map((p) => (p.isAlive ? movePlayer(p) : p))
+          const collisionResults = movedPlayers.map((p) => checkCollision(p, movedPlayers))
+
+          const finalPlayers = movedPlayers.map((p, i) => ({
+            ...p,
+            isAlive: p.isAlive && !collisionResults[i],
+          }))
+
+          // Emit particles from alive cycles - optimized for performance on all devices
+          setCycleParticles((prev) => {
+            try {
+              let newParticles = [...prev]
+              
+              // Update existing particles
+              newParticles = newParticles
+                .map((p) => ({ ...p, age: p.age + 1 }))
+                .filter((p) => p.age < p.life)
+
+              // Adaptive particle limits based on screen size
+              const isMobile = typeof window !== "undefined" && window.innerWidth < 768
+              const maxParticles = isMobile ? 50 : 80
+              const emitChance = isMobile ? 0.5 : 0.6
+
+              if (newParticles.length < maxParticles && Math.random() > emitChance) {
+                for (const player of finalPlayers) {
+                  if (player.isAlive && newParticles.length < maxParticles) {
+                    const newParticle = {
+                      id: `${player.id}-${particleCounterRef.current++}`,
+                      playerId: player.id,
+                      x: player.pos.x,
+                      y: player.pos.y,
+                      color: player.color,
+                      age: 0,
+                      life: 5 + Math.random() * 2,
+                    }
+                    newParticles.push(newParticle)
+                  }
+                }
+              }
+
+              return newParticles.slice(-maxParticles)
+            } catch (e) {
+              console.error("[v0] Particle error:", e)
+              return prev
+            }
+          })
+
+          const aliveCount = finalPlayers.filter((p) => p.isAlive).length
+          if (aliveCount <= 1 && gameState === "PLAYING") {
+            const wp = finalPlayers.find((p) => p.isAlive)
+            handleGameOver(wp)
+          }
+
+          return finalPlayers
+        } catch (e) {
+          console.error("[v0] Game state error:", e)
+          return prev
         }
-
-        return newParticles.slice(-maxParticles)
       })
-
-      const aliveCount = finalPlayers.filter((p) => p.isAlive).length
-      if (aliveCount <= 1 && gameState === "PLAYING") {
-        const wp = finalPlayers.find((p) => p.isAlive)
-        handleGameOver(wp)
-      }
-
-      return finalPlayers
-    })
-  }, gameState === "PLAYING")
+    } catch (e) {
+      console.error("[v0] Game loop error:", e)
+    }
+  }, [gameState, speed, handleGameOver])
 
   const pixelWidth = gridSize * cellSize
   const pixelHeight = gridSize * cellSize

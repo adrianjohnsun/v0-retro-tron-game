@@ -293,9 +293,12 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
             sAngle = -Math.PI / 2
           }
 
-          // Tron Legacy palette: predominantly cold cyan-white with rare warm orange
-          const isOrange = Math.random() < 0.04
-          const isBrightCyan = Math.random() < 0.3
+          // Tron Legacy palette: predominantly cold cyan-white with warm orange accents
+          // Assign particles to words: cyan for TRON, orange for RETRO
+          const textY = h * 0.18
+          const isRetroLine = targetY > textY + 40
+          const isOrange = isRetroLine && Math.random() < 0.7  // More orange in RETRO line
+          const isBrightCyan = !isOrange && Math.random() < 0.6  // Brighter cyan for TRON
 
           data.particles.push({
             x: spawnX,
@@ -303,11 +306,11 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
             tx: targetX,
             ty: targetY,
             z: Math.random() * 60,
-            w: 1 + Math.random() * 2,   // rectangular shards
-            h: 0.5 + Math.random() * 1.5,
-            hue: isOrange ? 25 + Math.random() * 12 : 190 + Math.random() * 8,
-            sat: isOrange ? 100 : 80 + Math.random() * 20,
-            lum: isBrightCyan ? 85 + Math.random() * 15 : 60 + Math.random() * 25,
+            w: 2 + Math.random() * 2.5,   // larger rectangles for visibility
+            h: 1 + Math.random() * 2,
+            hue: isOrange ? 25 + Math.random() * 10 : 190 + Math.random() * 5,
+            sat: isOrange ? 100 : 95 + Math.random() * 5,
+            lum: isOrange ? 75 + Math.random() * 20 : 75 + Math.random() * 20,  // Much brighter for solid colors
             alpha: 0,
             speed: 0.012 + Math.random() * 0.02,
             phase: Math.random() * Math.PI * 2,
@@ -369,6 +372,12 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       const h = H()
       const cx = w / 2
       const cy = h / 2
+
+      // Play audio at very beginning of animation
+      if (progress < 0.01 && audioSourceRef.current && audioSourceRef.current.paused) {
+        audioSourceRef.current.currentTime = 0
+        audioSourceRef.current.play().catch(() => {})
+      }
 
       // === CLEAR ===
       ctx.fillStyle = "#000608"
@@ -550,14 +559,14 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           }
           p.trail = p.trail.filter(t => t.a > 0.015)
 
-          // Draw particle — sharp luminous rectangle
+          // Draw particle — sharp luminous rectangle, fully visible during formation
           const flicker = p.arrived
-            ? 0.82 + Math.sin(elapsed * 0.001 * p.flickerRate + p.phase) * 0.18 + heartbeat * 0.12
-            : 0.3 + titleP * 0.5
+            ? 0.9 + Math.sin(elapsed * 0.001 * p.flickerRate + p.phase) * 0.1 + heartbeat * 0.12
+            : 0.4 + titleP * 0.8  // Much more visible during convergence
 
           const sw = p.arrived ? p.w * (1 + heartbeat * 0.15) : p.w
           const sh = p.arrived ? p.h * (1 + heartbeat * 0.15) : p.h
-          const bright = p.arrived ? Math.min(100, p.lum + heartbeat * 18) : p.lum * 0.6
+          const bright = p.arrived ? Math.min(100, p.lum + heartbeat * 18) : Math.min(100, p.lum)  // Always show full brightness
 
           ctx.fillStyle = `hsla(${p.hue}, ${p.sat}%, ${bright}%, ${flicker * p.alpha})`
           ctx.fillRect(p.x - sw / 2, p.y - sh / 2, sw, sh)
