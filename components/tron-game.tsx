@@ -377,31 +377,31 @@ function TouchControls({ onDirection }: { onDirection: (dir: Direction) => void 
     setPressed(null)
   }
 
-  // Responsive button sizing based on screen width
+  // Responsive button sizing with perfect mobile spacing
   const getButtonSize = () => {
     const w = typeof window !== "undefined" ? window.innerWidth : 1024
-    if (w < 360) return "w-10 h-10"  // Small phones
-    if (w < 480) return "w-12 h-12"  // Normal phones
-    if (w < 768) return "w-14 h-14"  // Large phones / tablets
-    return "w-16 h-16"  // iPad/desktop
+    if (w < 360) return "w-11 h-11"
+    if (w < 480) return "w-12 h-12"
+    if (w < 640) return "w-13 h-13"
+    if (w < 768) return "w-14 h-14"
+    return "w-16 h-16"
   }
 
   const ButtonStyles = (dir: Direction) => `
     flex items-center justify-center 
     ${getButtonSize()}
-    rounded-sm border-2
-    transition-all duration-75
+    rounded-md border-2 font-bold text-xs
+    transition-all duration-75 active:duration-100
     ${pressed === dir 
-      ? "bg-primary/40 border-primary shadow-[0_0_12px_rgba(0,242,255,0.8)] scale-95" 
-      : "bg-primary/15 border-primary/50 shadow-[0_0_8px_rgba(0,242,255,0.4)]"
+      ? "bg-primary/50 border-primary shadow-[0_0_16px_rgba(0,242,255,1)] scale-90" 
+      : "bg-primary/20 border-primary/70 shadow-[0_0_10px_rgba(0,242,255,0.5)] hover:bg-primary/30 hover:border-primary"
     }
-    active:bg-primary/40 active:border-primary active:shadow-[0_0_12px_rgba(0,242,255,0.8)]
-    hover:border-primary/80
+    active:bg-primary/50 active:border-primary active:shadow-[0_0_16px_rgba(0,242,255,1)]
   `
 
   return (
-    <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 select-none" style={{ touchAction: "none" }}>
-      <div className="grid grid-cols-3 grid-rows-3 gap-1.5 sm:gap-2 w-fit">
+    <div className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 z-50 select-none safe-area-bottom" style={{ touchAction: "none", paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+      <div className="grid grid-cols-3 grid-rows-3 gap-1 sm:gap-1.5 w-fit px-2 py-3 rounded-t-lg bg-gradient-to-t from-black/80 to-black/40 backdrop-blur-md border-t border-l border-r border-primary/30">
         {/* Row 1 */}
         <div />
         <button
@@ -884,33 +884,33 @@ export function TronGame() {
 
   return (
     <div
-      className={`flex flex-col items-center justify-start md:justify-center min-h-screen min-h-[100dvh] bg-black font-retro relative overflow-hidden text-foreground ${isGlitching ? "glitch-flash" : ""}`}
+      className={`flex flex-col items-center justify-start md:justify-center min-h-screen min-h-[100dvh] bg-black font-retro relative overflow-x-hidden overflow-y-auto md:overflow-hidden text-foreground ${isGlitching ? "glitch-flash" : ""}`}
     >
       <div className="crt-overlay" />
       <div className="noise-overlay" />
       <div className="scanline" />
 
       {/* Header */}
-      <div className="flex flex-col items-center z-10 pt-2 sm:pt-3 md:pt-0 md:mb-4 mb-1 sm:mb-2">
-        <h1 className="text-2xl sm:text-4xl md:text-6xl font-black italic tracking-tighter text-primary filter drop-shadow-[0_0_8px_rgba(0,242,255,0.8)]">
+      <div className="flex flex-col items-center z-10 pt-3 sm:pt-4 md:pt-0 md:mb-6 mb-2 sm:mb-3">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black italic tracking-tighter text-primary filter drop-shadow-[0_0_12px_rgba(0,242,255,0.9)]">
           TRON
         </h1>
-        <div className="text-[5px] sm:text-[6px] md:text-[8px] tracking-[0.4em] sm:tracking-[0.5em] md:tracking-[0.8em] text-primary/50 mt-0.5 md:mt-1 uppercase">
+        <div className="text-[6px] sm:text-[7px] md:text-[8px] tracking-[0.5em] sm:tracking-[0.6em] md:tracking-[0.8em] text-primary/60 mt-1 md:mt-2 uppercase font-semibold">
           Light Cycle Program
         </div>
       </div>
 
-      {/* Status bar - mobile compact */}
-      <div className="flex items-center justify-between w-full max-w-[600px] px-3 sm:px-4 md:px-0 mb-1 sm:mb-2 md:mb-4 z-10">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3">
-              <TronIcons.RadarPulse size={12} color="#00f2ff" />
+      {/* Status bar - mobile optimized spacing */}
+      <div className="flex items-center justify-between w-full max-w-[600px] px-3 sm:px-4 md:px-0 mb-2 sm:mb-3 md:mb-6 z-10 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-primary/10 px-2 sm:px-3 py-1.5 rounded-md">
+            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3">
+              <TronIcons.RadarPulse size={10} color="#00f2ff" />
             </div>
-            <span className="text-[8px] md:text-[10px] text-primary/80 tracking-widest font-bold">LVL {level}</span>
+            <span className="text-[7px] sm:text-[8px] md:text-[10px] text-primary/90 tracking-widest font-bold">LVL {level}</span>
           </div>
-          <div className="w-px h-3 bg-primary/20" />
-          <span className="text-[8px] md:text-[10px] text-primary/50 font-mono">
+          <div className="w-px h-3 bg-primary/15" />
+          <span className="text-[7px] sm:text-[8px] md:text-[10px] text-primary/60 font-mono font-semibold">
             {totalWins}W {totalLosses}L
           </span>
         </div>
@@ -926,12 +926,13 @@ export function TronGame() {
         </div>
       </div>
 
-      {/* Game grid */}
+      {/* Game grid - mobile optimized */}
       <div
-        className="relative tron-border rounded-sm overflow-hidden z-10"
+        className="relative tron-border rounded-md overflow-hidden z-10 shadow-[0_0_20px_rgba(0,242,255,0.4)]"
         style={{
           width: pixelWidth,
           height: pixelHeight,
+          maxWidth: "100vw",
         }}
       >
         {/* Grid lines */}
