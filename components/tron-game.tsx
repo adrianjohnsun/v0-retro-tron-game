@@ -78,14 +78,6 @@ function useGridDimensions() {
 
   return dims
 }
-    }
-    calc()
-    window.addEventListener("resize", calc)
-    return () => window.removeEventListener("resize", calc)
-  }, [])
-
-  return dims
-}
 
 function LightCycle({ color, dir, isAlive }: { color: string; dir: Direction; isAlive: boolean }) {
   const rotation = {
