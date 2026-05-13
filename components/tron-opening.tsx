@@ -605,40 +605,6 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
 
           ctx.fillStyle = `hsla(${p.hue}, ${satBoost}%, ${bright}%, ${Math.min(1, flicker * p.alpha * (0.7 + convergenceBoost * 0.3))})`
           ctx.fillRect(p.x - sw / 2, p.y - sh / 2, sw, sh)
-        }
-          }
-
-          // Draw trail — Tron Legacy data stream: sharp rectangular fragments fading
-          for (const tr of p.trail) {
-            tr.a *= 0.82
-            if (tr.a > 0.015) {
-              ctx.fillStyle = `hsla(${p.hue}, ${p.sat}%, 70%, ${tr.a * p.alpha})`
-              ctx.fillRect(tr.x - tr.w / 2, tr.y - tr.h / 2, tr.w, tr.h)
-            }
-          }
-          p.trail = p.trail.filter(t => t.a > 0.015)
-
-          // Draw particle — ultra-bright, hyper-saturated for complete solid title
-          // Particles become MORE visible as they converge, not less
-          const convergenceBoost = Math.pow(Math.min(1, titleP), 0.5)  // Boost visibility during convergence
-          
-          const flicker = p.arrived
-            ? 0.95 + Math.sin(elapsed * 0.001 * p.flickerRate + p.phase) * 0.05 + heartbeat * 0.08
-            : 0.5 + titleP * 1.0  // MUCH MORE visible during convergence - reaches 1.5 opacity equivalent
-
-          const sw = p.arrived ? p.w * (1 + heartbeat * 0.12) : p.w * (0.8 + convergenceBoost * 0.4)
-          const sh = p.arrived ? p.h * (1 + heartbeat * 0.12) : p.h * (0.8 + convergenceBoost * 0.4)
-          
-          // Maximum brightness - no dimming during formation
-          const bright = p.arrived 
-            ? Math.min(100, p.lum + heartbeat * 15)
-            : Math.min(100, p.lum * 1.2 + titleP * 25)  // Progressively brighten during convergence
-
-          // Saturate colors more - especially during convergence
-          const satBoost = p.arrived ? p.sat : Math.min(100, p.sat * 1.3 + titleP * 15)
-
-          ctx.fillStyle = `hsla(${p.hue}, ${satBoost}%, ${bright}%, ${Math.min(1, flicker * p.alpha * (0.7 + convergenceBoost * 0.3))})`
-          ctx.fillRect(p.x - sw / 2, p.y - sh / 2, sw, sh)
 
           // Subtle glow halo on arrived particles (not all — sparse like Legacy)
           if (p.arrived && p.glowIntensity > 0.7 && Math.random() > 0.97) {
