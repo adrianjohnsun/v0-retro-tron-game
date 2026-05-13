@@ -376,9 +376,9 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
       ctx.fillStyle = "#000608"
       ctx.fillRect(0, 0, w, h)
 
-      // === PHASE 1: TUNNEL (0 - 0.5) ===
-      if (progress < 0.65) {
-        const tp = Math.min(1, progress / 0.5)
+      // === PHASE 1: TUNNEL ONLY (0 - 0.375 = 3 seconds) ===
+      if (progress < 0.375) {
+        const tp = Math.min(1, progress / 0.375)
         const accel = 1 + tp * tp * 10
 
         // Infinite perspective grid — floor + ceiling
@@ -392,13 +392,11 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         ctx.lineWidth = 0.5
         const gridDensity = w > 768 ? 2 : 3  // Fewer lines on mobile
         const gridLines = Math.floor(36 / gridDensity)
-        // Fade grid during title phase
-        const titleGridFade = progress > 0.18 ? Math.max(0, 1 - (progress - 0.18) / 0.3) : 1
         for (let i = 0; i < gridLines; i++) {
           const ii = i * gridDensity
           const z = (ii / 36) * 20 + 1
           const screenY = vanishY + h75 / z
-          const a = Math.max(0, baseAlpha * (1 - ii / 36) * titleGridFade)
+          const a = Math.max(0, baseAlpha * (1 - ii / 36))
 
           // Floor grid
           ctx.strokeStyle = `hsla(190, 90%, 55%, ${a})`
@@ -416,11 +414,11 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           ctx.stroke()
         }
 
-        // Converging verticals - optimized, fade during title
-        ctx.strokeStyle = `hsla(190, 85%, 50%, ${baseAlpha * 0.6 * titleGridFade})`
+        // Converging verticals - optimized
+        ctx.strokeStyle = `hsla(190, 85%, 50%, ${baseAlpha * 0.6})`
         for (let i = -16; i <= 16; i += 1) {
           const xBase = cx + (i / 18) * w * 0.95
-          const a = Math.max(0, (1 - Math.abs(i) / 18) * 0.3 * (1 - tp * 0.3) * titleGridFade)
+          const a = Math.max(0, (1 - Math.abs(i) / 18) * 0.3 * (1 - tp * 0.3))
           ctx.strokeStyle = `hsla(190, 90%, 50%, ${a})`
           ctx.lineWidth = 0.4
           ctx.beginPath()
@@ -430,7 +428,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         }
         ctx.restore()
 
-        // Tunnel rings - fade behind particles during title phase
+        // Tunnel rings
         for (const ring of data.tunnelRings) {
           ring.z -= ring.speed * accel * 0.35
           if (ring.z < -30) ring.z = 1600 + Math.random() * 300
@@ -438,9 +436,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           const persp = 280 / (ring.z + 45)
           const rw = w * persp * 0.65
           const rh = h * persp * 0.65
-          // Fade tunnel opacity during title formation phase (0.18 onwards)
-          const titleFadeOut = progress > 0.18 ? Math.max(0, 1 - (progress - 0.18) / 0.3) : 1
-          const alpha = Math.min(0.55, persp * 0.28) * Math.min(1, tp * 3.5) * titleFadeOut
+          const alpha = Math.min(0.55, persp * 0.28) * Math.min(1, tp * 3.5)
 
           if (rw > 0 && rh > 0 && rw < w * 5) {
             ctx.strokeStyle = `hsla(${ring.hue}, 100%, 58%, ${alpha})`
@@ -506,13 +502,13 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         ctx.fillRect(cx - coreSize, cy - coreSize, coreSize * 2, coreSize * 2)
       }
 
-      // === PHASE 2: TITLE PARTICLE RECONSTRUCTION (0.18 - 0.98) ===
-      if (progress > 0.18) {
+      // === PHASE 2: TITLE PARTICLE RECONSTRUCTION (0.375 - 1.0 = 5 seconds) ===
+      if (progress >= 0.375) {
         buildTitleParticles(w, h)
 
-        const titleP = Math.min(1, (progress - 0.18) / 0.80)  // Longer formation window
+        const titleP = Math.min(1, (progress - 0.375) / 0.625)  // 5 seconds for complete formation
         // Extremely aggressive easing - particles snap into place fast
-        const easeTitle = titleP < 0.2 ? titleP * 5 : titleP < 0.6 ? 1 : Math.min(1, 0.5 + titleP * 1.5)
+        const easeTitle = titleP < 0.15 ? titleP * 6.67 : 1  // Reach full easing in first 0.09 seconds
 
         // Heartbeat pulse
         const hbFreq = 2.0
@@ -570,28 +566,20 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           }
         }
 
-        // Render particles - FULL POWER
+        // Render particles - FULL POWER - STAY PERMANENTLY BRIGHT
         for (const p of data.particles) {
-          // Draw particle — ultra-bright, hyper-saturated for complete solid title
-          // Particles become MORE visible as they converge, not less
-          const convergenceBoost = Math.pow(Math.min(1, titleP), 0.5)  // Boost visibility during convergence
+          // Particles lock into full brightness and stay there
+          const sw = p.w
+          const sh = p.h
           
-          const flicker = p.arrived
-            ? 0.95 + Math.sin(elapsed * 0.001 * p.flickerRate + p.phase) * 0.05 + heartbeat * 0.08
-            : 0.5 + titleP * 1.0  // MUCH MORE visible during convergence - reaches 1.5 opacity equivalent
-
-          const sw = p.arrived ? p.w * (1 + heartbeat * 0.12) : p.w * (0.8 + convergenceBoost * 0.4)
-          const sh = p.arrived ? p.h * (1 + heartbeat * 0.12) : p.h * (0.8 + convergenceBoost * 0.4)
+          // After particles arrive, they stay at full brightness permanently
+          const bright = Math.min(100, 85 + heartbeat * 10)  // Always 85-95% brightness after arrival
+          const satBoost = 100  // Full saturation for cyan and orange
           
-          // Maximum brightness - no dimming during formation
-          const bright = p.arrived 
-            ? Math.min(100, p.lum + heartbeat * 15)
-            : Math.min(100, p.lum * 1.2 + titleP * 25)  // Progressively brighten during convergence
+          // Once arrived, full opacity - never fade
+          const finalAlpha = p.arrived ? 1.0 : Math.min(1, p.alpha)
 
-          // Saturate colors more - especially during convergence
-          const satBoost = p.arrived ? p.sat : Math.min(100, p.sat * 1.3 + titleP * 15)
-
-          ctx.fillStyle = `hsla(${p.hue}, ${satBoost}%, ${bright}%, ${Math.min(1, flicker * p.alpha * (0.7 + convergenceBoost * 0.3))})`
+          ctx.fillStyle = `hsla(${p.hue}, ${satBoost}%, ${bright}%, ${finalAlpha})`
           ctx.fillRect(p.x - sw / 2, p.y - sh / 2, sw, sh)
 
           // Subtle glow halo on arrived particles (not all — sparse like Legacy)

@@ -553,15 +553,25 @@ export function TronGame() {
         return { x: p.x + 1, y: p.y }
       }
 
-      const isSafe = (pos: Point): boolean => {
+      // Check if position collides with any trail (own trail or opponent's trail)
+      const isSafe = (pos: Point, checkOwnTrail: boolean = true): boolean => {
         if (pos.x < 0 || pos.x >= gridSize || pos.y < 0 || pos.y >= gridSize) return false
-        return !allPlayers.some((p) => p.trail.some((t) => t.x === pos.x && t.y === pos.y))
+        
+        // Check opponent trail
+        const opponent = allPlayers.find((p) => p.id !== aiPlayer.id)
+        if (opponent && opponent.trail.some((t) => t.x === pos.x && t.y === pos.y)) return false
+        
+        // Check own trail to avoid self-collision
+        if (checkOwnTrail && aiPlayer.trail.some((t) => t.x === pos.x && t.y === pos.y)) return false
+        
+        return true
       }
 
       const user = allPlayers.find((p) => p.id === 1)!
 
       const ratedDirs = dirs
         .filter((d) => {
+          // Never reverse direction (suicide prevention)
           if (aiPlayer.dir === "UP" && d === "DOWN") return false
           if (aiPlayer.dir === "DOWN" && d === "UP") return false
           if (aiPlayer.dir === "LEFT" && d === "RIGHT") return false
@@ -571,50 +581,63 @@ export function TronGame() {
         .map((d) => {
           const next = getNextPos(aiPlayer.pos, d)
           let score = 0
-          if (!isSafe(next)) score -= 10000
+          
+          // Immediate death - avoid at all costs
+          if (!isSafe(next, true)) {
+            score -= 50000
+            return { dir: d, score }
+          }
 
-          const lookAhead = 3 + Math.floor(level * 1.5)
+          // Deep lookahead - much deeper to avoid trap corridors
+          const lookAhead = 5 + Math.floor(level * 2)
           let tempPos = { ...next }
-          let spaceFound = 0
+          let safeStepsFound = 0
 
           for (let i = 0; i < lookAhead; i++) {
             tempPos = getNextPos(tempPos, d)
-            if (!isSafe(tempPos)) {
-              score -= (lookAhead - i) * 200
+            if (!isSafe(tempPos, false)) {
+              // Penalize based on how soon the wall appears
+              score -= (lookAhead - i) * 300
               break
             }
-            spaceFound++
+            safeStepsFound++
           }
 
-          score += spaceFound * 50
+          // Reward abundant space
+          score += safeStepsFound * 80
 
+          // Strategic positioning: hunt the player
           const distToUser = Math.abs(next.x - user.pos.x) + Math.abs(next.y - user.pos.y)
-          if (level > 2) {
-            score -= distToUser * (0.5 * level)
+          
+          // Only chase aggressively at higher levels
+          if (level >= 2) {
+            // Prefer moving toward user
+            score -= distToUser * (0.3 * level)
           }
 
-          // Add randomness factor - minimal on level 1, moderate on level 2+
-          const baseFactor = level <= 1 ? 0 : level <= 2 ? 4 : level * 6
-          const randomFactor = (Math.random() - 0.5) * baseFactor
+          // Minimal randomness - makes AI predictable but smart
+          const randomFactor = (Math.random() - 0.5) * (level <= 1 ? 0 : 3)
           score += randomFactor
 
           return { dir: d, score }
         })
         .sort((a, b) => b.score - a.score)
 
-      // Introduce occasional random decisions - balanced across levels
+      // Rarely make a suboptimal choice (only on high levels, and only if safe)
       const randomChance = Math.random()
-      const shouldBeRandom = randomChance < (level <= 1 ? 0.05 : level <= 2 ? 0.12 : 0.15 + (level - 3) * 0.03)
+      const shouldBeRandom = randomChance < (level <= 1 ? 0.02 : level === 2 ? 0.08 : 0.12)
 
       if (shouldBeRandom && ratedDirs.length > 1) {
-        // Pick a random valid direction instead of optimal
-        const validDirs = ratedDirs.filter((d) => d.score > -5000)
-        if (validDirs.length > 0) {
-          return validDirs[Math.floor(Math.random() * validDirs.length)].dir
+        // Only pick from SAFE directions
+        const safeDirs = ratedDirs.filter((d) => d.score > -10000)
+        if (safeDirs.length > 0) {
+          return safeDirs[Math.floor(Math.random() * Math.min(2, safeDirs.length))].dir
         }
       }
 
-      return ratedDirs[0].score < -5000 ? aiPlayer.dir : ratedDirs[0].dir
+      // Default to best scored safe direction
+      const bestDir = ratedDirs.find((d) => d.score > -10000)
+      return bestDir ? bestDir.dir : aiPlayer.dir
     },
     [gridSize, level],
   )
