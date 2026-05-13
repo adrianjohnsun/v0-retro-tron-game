@@ -74,41 +74,25 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     audio.preload = "auto"
     audioSourceRef.current = audio
 
+    // Play audio immediately on component mount
     const playAudio = () => {
       audio.currentTime = 0
-      const playPromise = audio.play()
-      
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          // Fallback: play on first user interaction
-          const resumeAudio = () => {
-            audio.play().catch(() => {})
-            document.removeEventListener("click", resumeAudio)
-            document.removeEventListener("keydown", resumeAudio)
-            document.removeEventListener("touchstart", resumeAudio)
-          }
-          document.addEventListener("click", resumeAudio, { once: true })
-          document.addEventListener("keydown", resumeAudio, { once: true })
-          document.addEventListener("touchstart", resumeAudio, { once: true })
-        })
-      }
+      audio.play().catch(() => {
+        // Fallback: play on first user interaction if autoplay blocked
+        const startAudio = () => {
+          audio.play().catch(() => {})
+          document.removeEventListener("click", startAudio)
+          document.removeEventListener("keydown", startAudio)
+          document.removeEventListener("touchstart", startAudio)
+        }
+        document.addEventListener("click", startAudio, { once: true })
+        document.addEventListener("keydown", startAudio, { once: true })
+        document.addEventListener("touchstart", startAudio, { once: true })
+      })
     }
 
-    // Play audio with 6-second lead time for proper synchronization
-    const audioTimer = setTimeout(() => {
-      if (audio.readyState >= 2) {
-        playAudio()
-      } else {
-        audio.addEventListener("canplay", playAudio, { once: true })
-      }
-    }, -6000)  // Negative = play immediately, then we'll handle sync in animate
-
-    // Actually play immediately instead
-    if (audio.readyState >= 2) {
-      playAudio()
-    } else {
-      audio.addEventListener("canplay", playAudio, { once: true })
-    }
+    // Play immediately when audio is ready
+    playAudio()
 
     return () => {
       if (audioSourceRef.current) {
@@ -408,11 +392,13 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         ctx.lineWidth = 0.5
         const gridDensity = w > 768 ? 2 : 3  // Fewer lines on mobile
         const gridLines = Math.floor(36 / gridDensity)
+        // Fade grid during title phase
+        const titleGridFade = progress > 0.18 ? Math.max(0, 1 - (progress - 0.18) / 0.3) : 1
         for (let i = 0; i < gridLines; i++) {
           const ii = i * gridDensity
           const z = (ii / 36) * 20 + 1
           const screenY = vanishY + h75 / z
-          const a = Math.max(0, baseAlpha * (1 - ii / 36))
+          const a = Math.max(0, baseAlpha * (1 - ii / 36) * titleGridFade)
 
           // Floor grid
           ctx.strokeStyle = `hsla(190, 90%, 55%, ${a})`
@@ -430,11 +416,11 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           ctx.stroke()
         }
 
-        // Converging verticals - optimized
-        ctx.strokeStyle = `hsla(190, 85%, 50%, ${baseAlpha * 0.6})`
+        // Converging verticals - optimized, fade during title
+        ctx.strokeStyle = `hsla(190, 85%, 50%, ${baseAlpha * 0.6 * titleGridFade})`
         for (let i = -16; i <= 16; i += 1) {
           const xBase = cx + (i / 18) * w * 0.95
-          const a = Math.max(0, (1 - Math.abs(i) / 18) * 0.3 * (1 - tp * 0.3))
+          const a = Math.max(0, (1 - Math.abs(i) / 18) * 0.3 * (1 - tp * 0.3) * titleGridFade)
           ctx.strokeStyle = `hsla(190, 90%, 50%, ${a})`
           ctx.lineWidth = 0.4
           ctx.beginPath()
@@ -444,7 +430,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         }
         ctx.restore()
 
-        // Tunnel rings
+        // Tunnel rings - fade behind particles during title phase
         for (const ring of data.tunnelRings) {
           ring.z -= ring.speed * accel * 0.35
           if (ring.z < -30) ring.z = 1600 + Math.random() * 300
@@ -452,7 +438,9 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
           const persp = 280 / (ring.z + 45)
           const rw = w * persp * 0.65
           const rh = h * persp * 0.65
-          const alpha = Math.min(0.55, persp * 0.28) * Math.min(1, tp * 3.5)
+          // Fade tunnel opacity during title formation phase (0.18 onwards)
+          const titleFadeOut = progress > 0.18 ? Math.max(0, 1 - (progress - 0.18) / 0.3) : 1
+          const alpha = Math.min(0.55, persp * 0.28) * Math.min(1, tp * 3.5) * titleFadeOut
 
           if (rw > 0 && rh > 0 && rw < w * 5) {
             ctx.strokeStyle = `hsla(${ring.hue}, 100%, 58%, ${alpha})`
