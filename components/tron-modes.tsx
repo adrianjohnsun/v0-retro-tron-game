@@ -120,18 +120,30 @@ export default function TronModes({ onBack, onSelectMode }: TronModesProps) {
 
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-20">
           <h2
-            className="font-mono font-black tracking-[0.3em] mb-3"
+            className="font-black italic tracking-tighter mb-2"
             style={{
-              fontSize: "clamp(1.3rem, 3.5vw, 2.2rem)",
+              fontSize: "clamp(1.8rem, 5vw, 3rem)",
               color: "#00e8ff",
-              textShadow: "0 0 18px rgba(0, 232, 255, 0.25)",
+              textShadow: "0 0 20px rgba(0, 232, 255, 0.6), 0 0 40px rgba(0, 232, 255, 0.3)",
+              fontFamily: "Arial Black, sans-serif",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            TRON RETRO
+          </h2>
+
+          <h3
+            className="font-mono text-xs tracking-[0.3em] mb-8"
+            style={{
+              color: "rgba(0, 232, 255, 0.5)",
+              letterSpacing: "0.3em",
             }}
           >
             GAME MODES
-          </h2>
+          </h3>
 
           <div
-            className="w-28 h-px mb-10"
+            className="w-28 h-px mb-6"
             style={{ background: "linear-gradient(90deg, transparent, rgba(0, 232, 255, 0.4), transparent)" }}
           />
 

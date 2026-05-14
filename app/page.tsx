@@ -1,21 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import TronOpening from "@/components/tron-opening"
+import TronLogo from "@/components/tron-logo"
 import TronHome from "@/components/tron-home"
 import TronAbout from "@/components/tron-about"
 import TronModes from "@/components/tron-modes"
 import { TronGame } from "@/components/tron-game"
 
-type AppScreen = "opening" | "home" | "play" | "disc-wars" | "modes" | "about"
+type AppScreen = "opening" | "logo" | "home" | "play" | "disc-wars" | "modes" | "about"
 
 export default function Home() {
   const [screen, setScreen] = useState<AppScreen>("opening")
+  const audioRef = useRef<HTMLAudioElement>(null)
 
   return (
     <main className="relative">
       {screen === "opening" && (
-        <TronOpening onComplete={() => setScreen("home")} />
+        <TronOpening onComplete={() => setScreen("logo")} />
+      )}
+
+      {screen === "logo" && (
+        <TronLogo onComplete={() => setScreen("home")} audioRef={audioRef} />
       )}
 
       {screen === "home" && (
