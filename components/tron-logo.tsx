@@ -14,7 +14,7 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
   const startTimeRef = useRef<number>(0)
   const [visible, setVisible] = useState(false)
 
-  const DURATION = 6000 // 6 seconds for logo display
+  const DURATION = 3000 // 3 seconds for logo display
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 100)
@@ -72,9 +72,9 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
         ctx.stroke()
       }
 
-      // Fade in/out effect
-      const fadeInDuration = 1
-      const fadeOutDuration = 0.8
+      // Fade in/out effect - optimized for 3 second duration
+      const fadeInDuration = 0.6
+      const fadeOutDuration = 0.4
       const fadeInProgress = Math.min(progress / fadeInDuration, 1)
       const fadeOutProgress = Math.max((progress - (DURATION / 1000 - fadeOutDuration)) / fadeOutDuration, 0)
       const alpha = Math.min(1, fadeInProgress) * (1 - fadeOutProgress)
@@ -132,19 +132,19 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
         }
       }
 
-      // Particle effects floating around the logo
-      const particleCount = 30
+      // Particle effects floating around the logo - enhanced
+      const particleCount = 80
       for (let i = 0; i < particleCount; i++) {
         const seed = i * 271
-        const angle = (seed % 360) * (Math.PI / 180) + progress * 0.5
-        const distance = 150 + Math.sin(progress * 2 + seed) * 80
+        const angle = (seed % 360) * (Math.PI / 180) + progress * 0.8
+        const distance = 100 + Math.sin(progress * 3 + seed * 0.5) * 120
         const px = w / 2 + Math.cos(angle) * distance
         const py = h / 2 + Math.sin(angle) * distance - h * 0.1
         const hue = (seed % 2) === 0 ? 190 : 25 // Cyan or orange
-        const particleAlpha = Math.sin(progress * Math.PI + seed * 0.1) * 0.5 + 0.3
+        const particleAlpha = Math.sin(progress * Math.PI + seed * 0.1) * 0.6 + 0.4
 
-        ctx.fillStyle = `hsla(${hue}, 100%, 60%, ${particleAlpha * alpha * 0.6})`
-        ctx.fillRect(px - 2, py - 2, 4, 4)
+        ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${particleAlpha * alpha * 0.8})`
+        ctx.fillRect(px - 2.5, py - 2.5, 5, 5)
       }
 
       // Continue animation or complete
