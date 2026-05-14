@@ -82,7 +82,7 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
       const fadeOutProgress = Math.max((progress - fadeOutStartTime) / fadeOutDuration, 0)
       const alpha = Math.min(1, fadeInProgress) * (1 - fadeOutProgress)
 
-      // Draw logo image
+      // Draw logo image with particles forming TV during intro
       if (logoImageRef.current) {
         const img = logoImageRef.current
         const maxWidth = w * 0.6
@@ -104,51 +104,71 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
         const x = (w - displayWidth) / 2
         const y = (h - displayHeight) / 2 - h * 0.05
 
-        ctx.globalAlpha = alpha
-        ctx.drawImage(img, x, y, displayWidth, displayHeight)
-        ctx.globalAlpha = 1.0
+        // First phase: particles form the TV image
+        if (progress < fadeOutStartTime) {
+          // Render the image fully during the static display phase
+          ctx.globalAlpha = alpha
+          ctx.drawImage(img, x, y, displayWidth, displayHeight)
+          ctx.globalAlpha = 1.0
 
-        // Add glitch effect to TV screen area only during fade-out phase
-        if (progress > fadeOutStartTime && Math.random() > 0.88) {
-          const glitchAmount = Math.random() * 8 - 4
-          const screenCenterX = x + displayWidth / 2
-          const screenCenterY = y + displayHeight * 0.35
-          const screenWidth = displayWidth * 0.5
-          const screenHeight = displayHeight * 0.35
+          // Particles orbit around the TV during display phase
+          const particleCount = 120
+          for (let i = 0; i < particleCount; i++) {
+            const seed = i * 271
+            const angle = (seed % 360) * (Math.PI / 180) + elapsed * 0.0005
+            const distance = displayWidth * 0.8 + Math.sin(progress * 2 + seed * 0.5) * 40
+            const px = x + displayWidth / 2 + Math.cos(angle) * distance
+            const py = y + displayHeight / 2 + Math.sin(angle) * distance
+            const hue = (seed % 2) === 0 ? 190 : 25 // Cyan or orange
+            const particleAlpha = Math.sin(elapsed * 0.003 + seed * 0.1) * 0.4 + 0.5
 
-          // Glitch horizontal slice
-          ctx.fillStyle = `rgba(255, 0, 128, ${Math.random() * 0.4 * fadeOutProgress})`
-          ctx.fillRect(
-            screenCenterX - screenWidth / 2 + glitchAmount,
-            screenCenterY - screenHeight / 2 + Math.random() * screenHeight,
-            screenWidth,
-            Math.random() * 10 + 2
-          )
+            ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${particleAlpha * alpha * 0.7})`
+            ctx.fillRect(px - 2, py - 2, 4, 4)
+          }
+        } else {
+          // Second phase: fade-out with dispersing particles
+          ctx.globalAlpha = alpha
+          ctx.drawImage(img, x, y, displayWidth, displayHeight)
+          ctx.globalAlpha = 1.0
 
-          // Glitch vertical line
-          ctx.strokeStyle = `rgba(0, 255, 255, ${Math.random() * 0.5 * fadeOutProgress})`
-          ctx.lineWidth = 3
-          ctx.beginPath()
-          ctx.moveTo(screenCenterX + glitchAmount, screenCenterY - screenHeight / 2)
-          ctx.lineTo(screenCenterX + glitchAmount, screenCenterY + screenHeight / 2)
-          ctx.stroke()
-        }
-      }
+          // Add glitch effect during fade-out
+          if (Math.random() > 0.88) {
+            const glitchAmount = Math.random() * 8 - 4
+            const screenCenterX = x + displayWidth / 2
+            const screenCenterY = y + displayHeight * 0.35
+            const screenWidth = displayWidth * 0.5
+            const screenHeight = displayHeight * 0.35
 
-      // Particle effects only appear during fade-out phase
-      if (progress > fadeOutStartTime) {
-        const particleCount = 80
-        for (let i = 0; i < particleCount; i++) {
-          const seed = i * 271
-          const angle = (seed % 360) * (Math.PI / 180) + progress * 0.8
-          const distance = 100 + Math.sin(progress * 3 + seed * 0.5) * 120
-          const px = w / 2 + Math.cos(angle) * distance
-          const py = h / 2 + Math.sin(angle) * distance - h * 0.1
-          const hue = (seed % 2) === 0 ? 190 : 25 // Cyan or orange
-          const particleAlpha = Math.sin(progress * Math.PI + seed * 0.1) * 0.6 + 0.4
+            ctx.fillStyle = `rgba(255, 0, 128, ${Math.random() * 0.4 * fadeOutProgress})`
+            ctx.fillRect(
+              screenCenterX - screenWidth / 2 + glitchAmount,
+              screenCenterY - screenHeight / 2 + Math.random() * screenHeight,
+              screenWidth,
+              Math.random() * 10 + 2
+            )
 
-          ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${particleAlpha * fadeOutProgress * 0.9})`
-          ctx.fillRect(px - 2.5, py - 2.5, 5, 5)
+            ctx.strokeStyle = `rgba(0, 255, 255, ${Math.random() * 0.5 * fadeOutProgress})`
+            ctx.lineWidth = 3
+            ctx.beginPath()
+            ctx.moveTo(screenCenterX + glitchAmount, screenCenterY - screenHeight / 2)
+            ctx.lineTo(screenCenterX + glitchAmount, screenCenterY + screenHeight / 2)
+            ctx.stroke()
+          }
+
+          // Dispersing particles during fade-out
+          const particleCount = 100
+          for (let i = 0; i < particleCount; i++) {
+            const seed = i * 271
+            const angle = (seed % 360) * (Math.PI / 180) + progress * 1.2
+            const distance = displayWidth * 0.8 + fadeOutProgress * 300
+            const px = x + displayWidth / 2 + Math.cos(angle) * distance
+            const py = y + displayHeight / 2 + Math.sin(angle) * distance
+            const hue = (seed % 2) === 0 ? 190 : 25
+            const particleAlpha = Math.sin(elapsed * 0.003 + seed * 0.1) * 0.3 + 0.2
+
+            ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${particleAlpha * fadeOutProgress * 0.8})`
+            ctx.fillRect(px - 2.5, py - 2.5, 5, 5)
+          }
         }
       }
 

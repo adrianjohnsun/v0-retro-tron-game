@@ -96,10 +96,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
 
     return () => {
       clearTimeout(audioTimer)
-      if (audioSourceRef.current) {
-        audioSourceRef.current.pause()
-        audioSourceRef.current.currentTime = 0
-      }
+      // Don't pause audio on cleanup - let it continue to logo screen
     }
   }, [])
 
@@ -666,11 +663,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
         animFrameRef.current = requestAnimationFrame(animate)
       } else if (!completedRef.current) {
         completedRef.current = true
-        // Stop the audio and clean up
-        if (audioSourceRef.current) {
-          audioSourceRef.current.pause()
-          audioSourceRef.current.currentTime = 0
-        }
+        // Don't stop audio - it continues through logo screen and menu
         setTimeout(onComplete, 100)
       }
     }
@@ -680,11 +673,7 @@ export default function TronOpening({ onComplete }: TronOpeningProps) {
     return () => {
       window.removeEventListener("resize", resize)
       cancelAnimationFrame(animFrameRef.current)
-      // Clean up audio on unmount
-      if (audioSourceRef.current) {
-        audioSourceRef.current.pause()
-        audioSourceRef.current.currentTime = 0
-      }
+      // Don't clean up audio - it persists across screens
     }
   }, [onComplete, buildTitleParticles])
 
