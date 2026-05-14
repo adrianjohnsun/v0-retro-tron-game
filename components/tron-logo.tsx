@@ -14,7 +14,8 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
   const startTimeRef = useRef<number>(0)
   const [visible, setVisible] = useState(false)
 
-  const DURATION = 3000 // 3 seconds for logo display
+  const DURATION = 6000 // 6 seconds for logo display
+  const TV_DISPLAY_TIME = 3000 // TV stays fully visible for 3 seconds
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 100)
@@ -72,11 +73,13 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
         ctx.stroke()
       }
 
-      // Fade in/out effect - optimized for 3 second duration
-      const fadeInDuration = 0.6
-      const fadeOutDuration = 0.4
+      // Fade in/out effect - TV stays fully visible for 3 seconds
+      const fadeInDuration = 0.4
+      const stayDuration = TV_DISPLAY_TIME / 1000
+      const fadeOutDuration = (DURATION - TV_DISPLAY_TIME) / 1000
       const fadeInProgress = Math.min(progress / fadeInDuration, 1)
-      const fadeOutProgress = Math.max((progress - (DURATION / 1000 - fadeOutDuration)) / fadeOutDuration, 0)
+      const fadeOutStartTime = fadeInDuration + stayDuration
+      const fadeOutProgress = Math.max((progress - fadeOutStartTime) / fadeOutDuration, 0)
       const alpha = Math.min(1, fadeInProgress) * (1 - fadeOutProgress)
 
       // Draw logo image
@@ -105,26 +108,26 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
         ctx.drawImage(img, x, y, displayWidth, displayHeight)
         ctx.globalAlpha = 1.0
 
-        // Add glitch effect to TV screen area (where the J logo is)
-        if (Math.random() > 0.92) {
-          const glitchAmount = Math.random() * 6 - 3
+        // Add glitch effect to TV screen area only during fade-out phase
+        if (progress > fadeOutStartTime && Math.random() > 0.88) {
+          const glitchAmount = Math.random() * 8 - 4
           const screenCenterX = x + displayWidth / 2
           const screenCenterY = y + displayHeight * 0.35
           const screenWidth = displayWidth * 0.5
           const screenHeight = displayHeight * 0.35
 
           // Glitch horizontal slice
-          ctx.fillStyle = `rgba(255, 0, 255, ${Math.random() * 0.3 * alpha})`
+          ctx.fillStyle = `rgba(255, 0, 128, ${Math.random() * 0.4 * fadeOutProgress})`
           ctx.fillRect(
             screenCenterX - screenWidth / 2 + glitchAmount,
             screenCenterY - screenHeight / 2 + Math.random() * screenHeight,
             screenWidth,
-            Math.random() * 8 + 2
+            Math.random() * 10 + 2
           )
 
           // Glitch vertical line
-          ctx.strokeStyle = `rgba(0, 255, 255, ${Math.random() * 0.4 * alpha})`
-          ctx.lineWidth = 2
+          ctx.strokeStyle = `rgba(0, 255, 255, ${Math.random() * 0.5 * fadeOutProgress})`
+          ctx.lineWidth = 3
           ctx.beginPath()
           ctx.moveTo(screenCenterX + glitchAmount, screenCenterY - screenHeight / 2)
           ctx.lineTo(screenCenterX + glitchAmount, screenCenterY + screenHeight / 2)
@@ -132,19 +135,21 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
         }
       }
 
-      // Particle effects floating around the logo - enhanced
-      const particleCount = 80
-      for (let i = 0; i < particleCount; i++) {
-        const seed = i * 271
-        const angle = (seed % 360) * (Math.PI / 180) + progress * 0.8
-        const distance = 100 + Math.sin(progress * 3 + seed * 0.5) * 120
-        const px = w / 2 + Math.cos(angle) * distance
-        const py = h / 2 + Math.sin(angle) * distance - h * 0.1
-        const hue = (seed % 2) === 0 ? 190 : 25 // Cyan or orange
-        const particleAlpha = Math.sin(progress * Math.PI + seed * 0.1) * 0.6 + 0.4
+      // Particle effects only appear during fade-out phase
+      if (progress > fadeOutStartTime) {
+        const particleCount = 80
+        for (let i = 0; i < particleCount; i++) {
+          const seed = i * 271
+          const angle = (seed % 360) * (Math.PI / 180) + progress * 0.8
+          const distance = 100 + Math.sin(progress * 3 + seed * 0.5) * 120
+          const px = w / 2 + Math.cos(angle) * distance
+          const py = h / 2 + Math.sin(angle) * distance - h * 0.1
+          const hue = (seed % 2) === 0 ? 190 : 25 // Cyan or orange
+          const particleAlpha = Math.sin(progress * Math.PI + seed * 0.1) * 0.6 + 0.4
 
-        ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${particleAlpha * alpha * 0.8})`
-        ctx.fillRect(px - 2.5, py - 2.5, 5, 5)
+          ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${particleAlpha * fadeOutProgress * 0.9})`
+          ctx.fillRect(px - 2.5, py - 2.5, 5, 5)
+        }
       }
 
       // Continue animation or complete
