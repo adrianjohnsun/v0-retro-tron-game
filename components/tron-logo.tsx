@@ -82,11 +82,11 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
       const fadeOutProgress = Math.max((progress - fadeOutStartTime) / fadeOutDuration, 0)
       const alpha = Math.min(1, fadeInProgress) * (1 - fadeOutProgress)
 
-      // Draw logo image with particles forming TV during intro
+      // Draw logo image - clean and simple
       if (logoImageRef.current) {
         const img = logoImageRef.current
-        const maxWidth = w * 0.6
-        const maxHeight = h * 0.7
+        const maxWidth = w * 0.35  // Much smaller - 35% instead of 60%
+        const maxHeight = h * 0.45  // Much smaller - 45% instead of 70%
 
         let displayWidth = img.width
         let displayHeight = img.height
@@ -104,94 +104,33 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
         const x = (w - displayWidth) / 2
         const y = (h - displayHeight) / 2 - h * 0.05
 
-        // First phase: particles form the TV image
-        if (progress < fadeOutStartTime) {
-          // Render the image fully during the static display phase
-          ctx.globalAlpha = alpha
-          ctx.drawImage(img, x, y, displayWidth, displayHeight)
-          ctx.globalAlpha = 1.0
+        // Render the TV image
+        ctx.globalAlpha = alpha
+        ctx.drawImage(img, x, y, displayWidth, displayHeight)
+        ctx.globalAlpha = 1.0
 
-          // Professional particles forming around TV border - tight, close formation
-          const particleCount = 200
-          for (let i = 0; i < particleCount; i++) {
-            const seed = i * 271
-            // Create particles along the perimeter of the TV
-            const perimeter = (i / particleCount) * (displayWidth * 2 + displayHeight * 2)
-            let px, py
-            
-            if (perimeter < displayWidth) {
-              // Top edge
-              px = x + perimeter
-              py = y - 8
-            } else if (perimeter < displayWidth + displayHeight) {
-              // Right edge
-              px = x + displayWidth + 8
-              py = y + (perimeter - displayWidth)
-            } else if (perimeter < displayWidth * 2 + displayHeight) {
-              // Bottom edge
-              px = x + displayWidth - (perimeter - displayWidth - displayHeight)
-              py = y + displayHeight + 8
-            } else {
-              // Left edge
-              px = x - 8
-              py = y + displayHeight - (perimeter - displayWidth * 2 - displayHeight)
-            }
-            
-            // Add slight oscillation for living effect
-            const oscillation = Math.sin(elapsed * 0.002 + seed * 0.1) * 3
-            px += oscillation
-            py += oscillation
-            
-            const hue = (seed % 2) === 0 ? 190 : 25 // Cyan or orange
-            const particleAlpha = 0.7 + Math.sin(elapsed * 0.003 + seed * 0.1) * 0.2
+        // Add glitch effect only during fade-out phase
+        if (progress > fadeOutStartTime && Math.random() > 0.88) {
+          const glitchAmount = Math.random() * 8 - 4
+          const screenCenterX = x + displayWidth / 2
+          const screenCenterY = y + displayHeight * 0.35
+          const screenWidth = displayWidth * 0.5
+          const screenHeight = displayHeight * 0.35
 
-            ctx.fillStyle = `hsla(${hue}, 100%, 70%, ${particleAlpha * alpha * 0.8})`
-            ctx.fillRect(px - 1.5, py - 1.5, 3, 3)
-          }
-        } else {
-          // Second phase: fade-out with dispersing particles
-          ctx.globalAlpha = alpha
-          ctx.drawImage(img, x, y, displayWidth, displayHeight)
-          ctx.globalAlpha = 1.0
+          ctx.fillStyle = `rgba(255, 0, 128, ${Math.random() * 0.4 * fadeOutProgress})`
+          ctx.fillRect(
+            screenCenterX - screenWidth / 2 + glitchAmount,
+            screenCenterY - screenHeight / 2 + Math.random() * screenHeight,
+            screenWidth,
+            Math.random() * 10 + 2
+          )
 
-          // Add glitch effect during fade-out
-          if (Math.random() > 0.88) {
-            const glitchAmount = Math.random() * 8 - 4
-            const screenCenterX = x + displayWidth / 2
-            const screenCenterY = y + displayHeight * 0.35
-            const screenWidth = displayWidth * 0.5
-            const screenHeight = displayHeight * 0.35
-
-            ctx.fillStyle = `rgba(255, 0, 128, ${Math.random() * 0.4 * fadeOutProgress})`
-            ctx.fillRect(
-              screenCenterX - screenWidth / 2 + glitchAmount,
-              screenCenterY - screenHeight / 2 + Math.random() * screenHeight,
-              screenWidth,
-              Math.random() * 10 + 2
-            )
-
-            ctx.strokeStyle = `rgba(0, 255, 255, ${Math.random() * 0.5 * fadeOutProgress})`
-            ctx.lineWidth = 3
-            ctx.beginPath()
-            ctx.moveTo(screenCenterX + glitchAmount, screenCenterY - screenHeight / 2)
-            ctx.lineTo(screenCenterX + glitchAmount, screenCenterY + screenHeight / 2)
-            ctx.stroke()
-          }
-
-          // Dispersing particles during fade-out
-          const particleCount = 100
-          for (let i = 0; i < particleCount; i++) {
-            const seed = i * 271
-            const angle = (seed % 360) * (Math.PI / 180) + progress * 1.2
-            const distance = displayWidth * 0.8 + fadeOutProgress * 300
-            const px = x + displayWidth / 2 + Math.cos(angle) * distance
-            const py = y + displayHeight / 2 + Math.sin(angle) * distance
-            const hue = (seed % 2) === 0 ? 190 : 25
-            const particleAlpha = Math.sin(elapsed * 0.003 + seed * 0.1) * 0.3 + 0.2
-
-            ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${particleAlpha * fadeOutProgress * 0.8})`
-            ctx.fillRect(px - 2.5, py - 2.5, 5, 5)
-          }
+          ctx.strokeStyle = `rgba(0, 255, 255, ${Math.random() * 0.5 * fadeOutProgress})`
+          ctx.lineWidth = 3
+          ctx.beginPath()
+          ctx.moveTo(screenCenterX + glitchAmount, screenCenterY - screenHeight / 2)
+          ctx.lineTo(screenCenterX + glitchAmount, screenCenterY + screenHeight / 2)
+          ctx.stroke()
         }
       }
 
