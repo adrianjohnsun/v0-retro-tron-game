@@ -111,19 +111,42 @@ export default function TronLogo({ onComplete, audioRef }: TronLogoProps) {
           ctx.drawImage(img, x, y, displayWidth, displayHeight)
           ctx.globalAlpha = 1.0
 
-          // Particles orbit around the TV during display phase
-          const particleCount = 120
+          // Professional particles forming around TV border - tight, close formation
+          const particleCount = 200
           for (let i = 0; i < particleCount; i++) {
             const seed = i * 271
-            const angle = (seed % 360) * (Math.PI / 180) + elapsed * 0.0005
-            const distance = displayWidth * 0.8 + Math.sin(progress * 2 + seed * 0.5) * 40
-            const px = x + displayWidth / 2 + Math.cos(angle) * distance
-            const py = y + displayHeight / 2 + Math.sin(angle) * distance
+            // Create particles along the perimeter of the TV
+            const perimeter = (i / particleCount) * (displayWidth * 2 + displayHeight * 2)
+            let px, py
+            
+            if (perimeter < displayWidth) {
+              // Top edge
+              px = x + perimeter
+              py = y - 8
+            } else if (perimeter < displayWidth + displayHeight) {
+              // Right edge
+              px = x + displayWidth + 8
+              py = y + (perimeter - displayWidth)
+            } else if (perimeter < displayWidth * 2 + displayHeight) {
+              // Bottom edge
+              px = x + displayWidth - (perimeter - displayWidth - displayHeight)
+              py = y + displayHeight + 8
+            } else {
+              // Left edge
+              px = x - 8
+              py = y + displayHeight - (perimeter - displayWidth * 2 - displayHeight)
+            }
+            
+            // Add slight oscillation for living effect
+            const oscillation = Math.sin(elapsed * 0.002 + seed * 0.1) * 3
+            px += oscillation
+            py += oscillation
+            
             const hue = (seed % 2) === 0 ? 190 : 25 // Cyan or orange
-            const particleAlpha = Math.sin(elapsed * 0.003 + seed * 0.1) * 0.4 + 0.5
+            const particleAlpha = 0.7 + Math.sin(elapsed * 0.003 + seed * 0.1) * 0.2
 
-            ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${particleAlpha * alpha * 0.7})`
-            ctx.fillRect(px - 2, py - 2, 4, 4)
+            ctx.fillStyle = `hsla(${hue}, 100%, 70%, ${particleAlpha * alpha * 0.8})`
+            ctx.fillRect(px - 1.5, py - 1.5, 3, 3)
           }
         } else {
           // Second phase: fade-out with dispersing particles
